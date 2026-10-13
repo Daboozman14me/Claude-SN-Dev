@@ -1,0 +1,31 @@
+{
+  "name": "servicenow-assisted-delivery-toolkit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "artifact:path": "tsx src/allocate-artifact-paths.ts",
+    "ingest:documents": "tsx src/ingest-documents.ts",
+    "test": "tsx --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "validate:assisted-research": "tsx src/validate-assisted-research.ts",
+    "validate:assisted-recommendation": "tsx src/validate-assisted-recommendation.ts",
+    "validate:assisted-technical-design": "tsx src/validate-assisted-technical-design.ts",
+    "validate:assisted-test-plan": "tsx src/validate-assisted-test-plan.ts",
+    "validate:assisted-stories": "tsx src/validate-assisted-story-draft.ts",
+    "validate:assisted-requirements": "tsx src/validate-assisted-requirements.ts",
+    "validate:assisted-loe": "tsx src/validate-assisted-loe.ts"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "jszip": "^3.10.2",
+    "pdfjs-dist": "^6.3.289",
+    "zod": "^4.1.9"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "pdf-lib": "^1.17.1",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.0"
+  }
+}
