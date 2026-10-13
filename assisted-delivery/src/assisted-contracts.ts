@@ -2096,3 +2096,97 @@ export const levelOfEffortPackageSchema = z
     }
   });
 export type LevelOfEffortPackage = z.infer<typeof levelOfEffortPackageSchema>;
+
+export const programStorageTypeSchema = z.enum(["git", "sharepoint", "local"]);
+export type ProgramStorageType = z.infer<typeof programStorageTypeSchema>;
+
+export const programRegistryEntrySchema = z
+  .object({
+    alias: z.string().min(1),
+    client: z.string().min(1),
+    program: z.string().min(1),
+    storageType: programStorageTypeSchema,
+    location: z.string().min(1),
+    localRoot: z.string().min(1).optional(),
+  })
+  .strict();
+export type ProgramRegistryEntry = z.infer<typeof programRegistryEntrySchema>;
+
+export const programRegistrySchema = z
+  .object({
+    programs: z.array(programRegistryEntrySchema).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const aliases = new Set<string>();
+    for (const entry of value.programs) {
+      if (aliases.has(entry.alias)) {
+        context.addIssue({
+          code: "custom",
+          path: ["programs", entry.alias],
+          message: `Duplicate program alias '${entry.alias}'.`,
+        });
+      }
+      aliases.add(entry.alias);
+    }
+  });
+export type ProgramRegistry = z.infer<typeof programRegistrySchema>;
+
+export const programManifestProjectSchema = z
+  .object({
+    application: z.string().min(1),
+    repo: z.string().min(1).optional(),
+    folder: z.string().min(1).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (!value.repo && !value.folder) {
+      context.addIssue({
+        code: "custom",
+        path: ["repo"],
+        message: "Project entry must set either 'repo' or 'folder'.",
+      });
+    }
+  });
+export type ProgramManifestProject = z.infer<
+  typeof programManifestProjectSchema
+>;
+
+export const programManifestSchema = z
+  .object({
+    program: z.string().min(1),
+    client: z.string().min(1),
+    storageType: programStorageTypeSchema,
+    org: z.string().min(1).optional(),
+    root: z.string().min(1).optional(),
+    projects: z.array(programManifestProjectSchema).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.storageType === "git" && !value.org) {
+      context.addIssue({
+        code: "custom",
+        path: ["org"],
+        message: "Git-backed manifests must set 'org'.",
+      });
+    }
+    if (value.storageType !== "git" && !value.root) {
+      context.addIssue({
+        code: "custom",
+        path: ["root"],
+        message: "SharePoint/local manifests must set 'root'.",
+      });
+    }
+    const applications = new Set<string>();
+    for (const project of value.projects) {
+      if (applications.has(project.application)) {
+        context.addIssue({
+          code: "custom",
+          path: ["projects", project.application],
+          message: `Duplicate application '${project.application}'.`,
+        });
+      }
+      applications.add(project.application);
+    }
+  });
+export type ProgramManifest = z.infer<typeof programManifestSchema>;

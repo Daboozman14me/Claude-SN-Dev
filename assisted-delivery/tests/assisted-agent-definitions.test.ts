@@ -21,6 +21,7 @@ const EXPECTED_AGENTS = [
   "assisted-delivery-test-design",
   "assisted-delivery-requirements-extractor",
   "assisted-delivery-level-of-effort",
+  "assisted-delivery-scaffolding",
   "assisted-delivery-supervisor",
 ];
 
@@ -66,6 +67,7 @@ test("supervisor routes the complete assisted workflow", () => {
   assert.match(agent, /assisted-delivery-test-design/);
   assert.match(agent, /assisted-delivery-requirements-extractor/);
   assert.match(agent, /assisted-delivery-level-of-effort/);
+  assert.match(agent, /assisted-delivery-scaffolding/);
   assert.match(agent, /never require them to run\s+npm/i);
   assert.match(agent, /external systems/i);
   assert.match(agent, /designConstraints/);
@@ -73,6 +75,18 @@ test("supervisor routes the complete assisted workflow", () => {
   assert.match(agent, /two distinct deliverables/);
   assert.match(agent, /Never mix\s+proposed design into the current-state report/);
   assert.match(agent, /No specialist may edit repository source/);
+});
+
+test("scaffolding agent keeps the personal registry out-of-tree and requires explicit provisioning approval", () => {
+  const agent = readAgent("assisted-delivery-scaffolding");
+  assert.match(agent, /assisted-delivery-programs\.json/);
+  assert.match(agent, /personal registry/i);
+  assert.match(agent, /manifest\.json/);
+  assert.match(agent, /this-conversation approval/i);
+  assert.match(agent, /monorepo exception/i);
+  assert.match(agent, /Never create a GitHub org/);
+  assert.match(agent, /Never write the personal registry anywhere inside a tracked\/junctioned/);
+  assert.match(agent, /Perform no ServiceNow instance reads or writes/);
 });
 
 test("test design creates traceable batch plans without execution", () => {

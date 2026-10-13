@@ -1,8 +1,12 @@
 # Octane / Assisted-Delivery integration design notes
 
-Status: **conceptual design only — nothing described here has been built.**
-This is a write-up of a design conversation, kept here so it isn't lost and
-can be shared/revisited. See the companion local memory
+Status: **the storage-scaffolding layer is built.** The 8th specialist,
+`assisted-delivery-scaffolding`, exists at
+`agents/assisted-delivery-scaffolding.md` and implements the hierarchy and
+registration flow described below. The rest of this doc (the research →
+story-drafter → test-design write-back chain) is still conceptual design
+only. This is a write-up of a design conversation, kept here so it isn't lost
+and can be shared/revisited. See the companion local memory
 `project_octane_assisted_delivery_integration.md` for the raw working notes
 this was adapted from.
 
@@ -52,15 +56,39 @@ against acceptance criteria before approval).
   or local storage would need to fake those (version history, a manual
   ownership convention) — explicitly a lighter-weight tier, not an
   equivalent.
-- **A scaffolding agent is needed** (the ServiceNow-toolkit analog of
-  Octane's Acorn "Generate" function) to set up the storage hierarchy:
-  program-level org/account → project-level repo → individual/local tier. It
-  should write a small manifest per program/project stating where each tier
-  lives, so other agents look up locations instead of guessing.
-- **Provisioning stays human-confirmed.** Actually creating a GitHub org/repo
-  or a SharePoint site/folder is infrastructure creation, not just writing
-  files — a scaffolding agent's job is the manifest/structure, never
-  autonomous provisioning.
+- **A scaffolding agent sets up the storage hierarchy** (the ServiceNow-
+  toolkit analog of Octane's Acorn "Generate" function): **Client → Program →
+  Project/Application**. A program maps to one GitHub org/account, one
+  SharePoint root, or one local root folder, per the team's own choice. A
+  project/application defaults to **one repo (or folder) per application**;
+  a shared repo for multiple small/tightly-coupled applications is an
+  explicit exception, confirmed every time a given repo name turns out to
+  already be in use, never assumed.
+- **Provisioning stays human-first, agent-assisted.** Creating a GitHub org,
+  a GitHub repo, or a SharePoint site/library is something a human does or
+  explicitly approves, one action at a time — never a standing
+  authorization. The scaffolding agent *attempts* git repo creation (via
+  `gh`) only after that specific approval; if it can't (no `gh`, not
+  authenticated, no org permission, name taken, network error), it reports
+  the precise reason and asks the human to either create it themselves or
+  point to an existing repo instead. A plain local root folder is the one
+  exception the agent may create directly — that's not infrastructure
+  provisioning, just `mkdir`.
+- **The manifest lives colocated with the program's own root storage** (a
+  dedicated git meta-repo named after the program, the SharePoint root, or
+  the local root) — never a separate central system. This follows Octane's
+  own principle that context lives next to what it describes, extended up
+  one level from "application" to "program."
+- **A personal, local pointer registry** — not shared, not part of any
+  tracked repo — maps program aliases to `{client, program, storageType,
+  location}`. It's a list because one person works multiple client accounts
+  at once; resolving an ambiguous task means checking this registry for an
+  exact match, multiple candidates (ask which), or no match (start new-
+  program registration). It lives at
+  `~/.claude/assisted-delivery-programs.json` — deliberately *outside* the
+  junction-linked `assisted-delivery/` folder this repo tracks, since it
+  accumulates client names and repo URLs across every account the person
+  works and must never risk being swept into a commit here.
 - **Code, program files, and context files are always stored centrally** —
   never only local.
 - **Drafts may live locally first**, but promotion from local to central is
@@ -69,6 +97,72 @@ against acceptance criteria before approval).
 - **Agents must confirm which program and project a task belongs to** each
   conversation when it isn't entirely obvious from context, rather than
   inferring it.
+
+### Worked example
+
+Client USPS, program POSTALPROGRAM, git-backed, with a dedicated meta-repo
+holding the manifest plus three sibling project repos; client Army, program
+Army, SharePoint-backed via a synced local drive letter.
+
+Personal registry (`~/.claude/assisted-delivery-programs.json`):
+
+```json
+{
+  "programs": [
+    {
+      "alias": "postal",
+      "client": "USPS",
+      "program": "POSTALPROGRAM",
+      "storageType": "git",
+      "location": "https://github.com/USPS/POSTALPROGRAM"
+    },
+    {
+      "alias": "army",
+      "client": "Army",
+      "program": "Army",
+      "storageType": "sharepoint",
+      "location": "E:\\SHAREPT1"
+    }
+  ]
+}
+```
+
+POSTALPROGRAM's manifest (inside `github.com/USPS/POSTALPROGRAM`):
+
+```json
+{
+  "program": "POSTALPROGRAM",
+  "client": "USPS",
+  "storageType": "git",
+  "org": "USPS",
+  "projects": [
+    { "application": "Project1", "repo": "https://github.com/USPS/Project1" },
+    { "application": "Project2", "repo": "https://github.com/USPS/Project2" },
+    { "application": "Project3", "repo": "https://github.com/USPS/Project3" }
+  ]
+}
+```
+
+Army's manifest (at `E:\SHAREPT1\manifest.json`):
+
+```json
+{
+  "program": "Army",
+  "client": "Army",
+  "storageType": "sharepoint",
+  "root": "E:\\SHAREPT1",
+  "projects": [
+    { "application": "Project1", "folder": "E:\\SHAREPT1\\Project1" },
+    { "application": "Project2", "folder": "E:\\SHAREPT1\\Project2" },
+    { "application": "Project3", "folder": "E:\\SHAREPT1\\Project3" }
+  ]
+}
+```
+
+Both shapes are validated by
+`assisted-delivery/src/validate-assisted-scaffolding.ts` against the
+`programRegistrySchema`/`programManifestSchema` zod schemas in
+`assisted-delivery/src/assisted-contracts.ts`.
 
 ## How to apply this when building the integration
 
@@ -83,5 +177,8 @@ in:
 
 ## Next step
 
-Nothing here is implemented yet. The natural next step is spec'ing out the
-scaffolding agent and/or the manifest format it would write.
+The storage-scaffolding layer above is built (`assisted-delivery-scaffolding`
+agent + registry/manifest schemas + validator). What's still conceptual:
+chaining `research` → `story-drafter` → `test-design`/verification into an
+actual write-back loop against a program's registered context, per "The core
+idea" above.

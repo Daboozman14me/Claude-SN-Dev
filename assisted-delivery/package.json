@@ -14,7 +14,8 @@
     "validate:assisted-test-plan": "tsx src/validate-assisted-test-plan.ts",
     "validate:assisted-stories": "tsx src/validate-assisted-story-draft.ts",
     "validate:assisted-requirements": "tsx src/validate-assisted-requirements.ts",
-    "validate:assisted-loe": "tsx src/validate-assisted-loe.ts"
+    "validate:assisted-loe": "tsx src/validate-assisted-loe.ts",
+    "validate:assisted-scaffolding": "tsx src/validate-assisted-scaffolding.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
