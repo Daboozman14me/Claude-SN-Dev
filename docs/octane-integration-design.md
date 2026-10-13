@@ -97,6 +97,13 @@ against acceptance criteria before approval).
 - **Agents must confirm which program and project a task belongs to** each
   conversation when it isn't entirely obvious from context, rather than
   inferring it.
+- **A project entry may record which ServiceNow instance it corresponds to**
+  — `serviceNowInstance: {alias, url?}` — so `assisted-delivery-research`
+  doesn't need to be told the same instance alias on every request. This is
+  a reference only: the **alias name**, nothing else. The actual credential
+  stays exclusively in `now-sdk`'s own credential store, resolved by
+  `now-sdk auth --list`; the registry/manifest never holds a password or any
+  other secret.
 
 ### Worked example
 

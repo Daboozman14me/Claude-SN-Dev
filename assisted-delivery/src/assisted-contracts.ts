@@ -2132,11 +2132,22 @@ export const programRegistrySchema = z
   });
 export type ProgramRegistry = z.infer<typeof programRegistrySchema>;
 
+export const programManifestServiceNowInstanceSchema = z
+  .object({
+    alias: z.string().min(1),
+    url: z.string().min(1).optional(),
+  })
+  .strict();
+export type ProgramManifestServiceNowInstance = z.infer<
+  typeof programManifestServiceNowInstanceSchema
+>;
+
 export const programManifestProjectSchema = z
   .object({
     application: z.string().min(1),
     repo: z.string().min(1).optional(),
     folder: z.string().min(1).optional(),
+    serviceNowInstance: programManifestServiceNowInstanceSchema.optional(),
   })
   .strict()
   .superRefine((value, context) => {

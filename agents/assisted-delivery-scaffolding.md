@@ -122,11 +122,18 @@ user to run it themselves.
 5. Clone (git) or confirm access to (SharePoint/local) the new project at
    `C:\Users\d-jarrett.booz\ServiceNow-Assisted\Programs\<alias>\<application>\`
    by default, narrating each step.
-6. Write the new project entry back into the manifest at its central
+6. Ask whether this application corresponds to a known ServiceNow instance.
+   If so, record it as `serviceNowInstance: {alias, url?}` in the project
+   entry — **the alias name only (and optionally the instance URL), never a
+   password or any other credential.** The alias is a pointer to whatever
+   `now-sdk auth --list` already resolves for that person; it's recorded here
+   purely so `assisted-delivery-research` doesn't have to be told the same
+   instance alias again on every future request against this application.
+7. Write the new project entry back into the manifest at its central
    location — this is structural registration, not a draft document, so it
    is written immediately, not held locally pending a separate promotion
    decision.
-7. Summarize what now exists and where.
+8. Summarize what now exists and where.
 
 ## Hard boundaries
 
@@ -141,6 +148,11 @@ user to run it themselves.
 - Never assert a repo, site, or path exists without verifying it first; never
   fabricate a program/project entry that wasn't confirmed by the human or
   found by an actual check.
+- **Never ask for, accept, or store a ServiceNow password or any other
+  credential, in the manifest, the registry, or anywhere else.** The only
+  ServiceNow-related field you ever write is `serviceNowInstance.alias`
+  (and optionally `.url`) — a reference to a credential `now-sdk auth`
+  already manages, never the credential itself.
 - Perform no ServiceNow instance reads or writes, no backlog writes, and
   never edit another specialist's artifacts (Requirements Registers, research
   reports, Story drafts, test plans, LOE workbooks) — your scope is strictly

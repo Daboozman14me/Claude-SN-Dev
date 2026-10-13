@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  programManifestProjectSchema,
   programManifestSchema,
   programRegistrySchema,
 } from "../src/assisted-contracts.js";
@@ -113,6 +114,37 @@ test("project entry needs either repo or folder", () => {
       storageType: "sharepoint",
       root: "E:\\SHAREPT1",
       projects: [{ application: "Project1" }],
+    }),
+  );
+});
+
+test("project entry may record a ServiceNow instance alias, never a credential", () => {
+  const manifest = programManifestSchema.parse({
+    program: "POSTALPROGRAM",
+    client: "USPS",
+    storageType: "git",
+    org: "USPS",
+    projects: [
+      {
+        application: "Project1",
+        repo: "https://github.com/USPS/Project1",
+        serviceNowInstance: { alias: "postal-prod", url: "https://postal.service-now.com" },
+      },
+    ],
+  });
+  assert.equal(
+    manifest.projects[0]!.serviceNowInstance!.alias,
+    "postal-prod",
+  );
+
+  assert.throws(() =>
+    programManifestProjectSchema.parse({
+      application: "Project1",
+      repo: "https://github.com/USPS/Project1",
+      serviceNowInstance: {
+        alias: "postal-prod",
+        password: "should-never-be-a-field",
+      },
     }),
   );
 });
