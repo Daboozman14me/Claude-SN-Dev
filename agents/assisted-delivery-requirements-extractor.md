@@ -32,13 +32,13 @@ ServiceNow write of any kind.
 
 Before producing the JSON package, read these two files in full:
 
-- `C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\assisted-contracts.ts`
+- `~/.claude/assisted-delivery/src/assisted-contracts.ts`
   — use `requirementsExtractionPackageSchema` /
   `RequirementsExtractionPackage` as the exact JSON shape, and
   `REQUIREMENT_TYPES`, `REQUIREMENT_CATEGORIES`,
   `REQUIREMENT_PRIORITY_LEVELS`, `REQUIREMENT_PRIORITY_BASES` for the exact
   enum values.
-- `C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\document-ingestion.ts`
+- `~/.claude/assisted-delivery/src/document-ingestion.ts`
   — understand how supplied files become normalized, citable documents and
   units (this is already format-agnostic across docx/pptx/pdf/html/
   markdown/txt/json, so no special handling is needed per document type).
@@ -48,7 +48,7 @@ toolkit — this preserves your actual working directory for any relative
 inputs):
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\ingest-documents.ts" "<file-or-folder>"
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/ingest-documents.ts" "<file-or-folder>"
 ```
 
 Surface every unreadable or unsupported input as a warning rather than
@@ -152,7 +152,7 @@ running (do not `cd` into the toolkit; use `--root` only if the user
 supplied one; never overwrite an existing version):
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base requirements-extraction --extension html --extension json
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base requirements-extraction --extension html --extension json
 ```
 
 Write one self-contained HTML report at the allocated path. It must
@@ -181,7 +181,7 @@ client and application names, never placeholders.
 Validate the JSON and its bound HTML by running:
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\validate-assisted-requirements.ts" "<absolute-json-path>"
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/validate-assisted-requirements.ts" "<absolute-json-path>"
 ```
 
 Correct any validation failures before returning. Treat this validator

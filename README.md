@@ -9,11 +9,13 @@ project artifacts (those live separately, outside this repo).
 ## What's in here
 
 - `agents/` — the subagent definitions: `assisted-delivery-supervisor` (the
-  orchestration hub) plus six specialists (`requirements-extractor`,
+  orchestration hub) plus eight active specialists (`requirements-extractor`,
   `research`, `solution-advisor`, `technical-design`, `story-drafter`,
-  `test-design`), and one disabled work-in-progress agent
-  (`assisted-delivery-level-of-effort.md.disabled` — still undersizes on a
-  second clean engagement; do not re-enable until refined).
+  `test-design`, `scaffolding`, `code-review`), and one disabled
+  work-in-progress agent (`assisted-delivery-level-of-effort.md.disabled` —
+  still undersizes on a second clean engagement; do not re-enable until
+  refined). Only `research` and `code-review` may query a ServiceNow
+  instance, and both are read-only.
 - `assisted-delivery/` — the TypeScript toolkit the agents call into
   (`src/`, `tests/`, `package.json`). Run `npm install` then `npm test` here
   after cloning; `node_modules/` and the runtime `cache/` folder are
@@ -25,6 +27,8 @@ project artifacts (those live separately, outside this repo).
   governed context-file model (inspired by the "Octane" methodology).
 - `docs/settings-permissions.md` — the Claude Code permission entries this
   toolkit needs, for setting it up on another machine.
+- `docs/code-review-workflow.md` — how a code review flows from report to
+  human decisions to fixes to re-review.
 
 ## How this repo is wired up on this machine
 

@@ -20,13 +20,13 @@ user to locate or understand a JSON companion. If a same-version Story
 JSON is already supplied, you may use it for exact IDs, but the readable
 report alone must be sufficient.
 
-1. Read `C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\assisted-contracts.ts`
+1. Read `~/.claude/assisted-delivery/src/assisted-contracts.ts`
    and use `TestPlanPackage` as the exact JSON shape.
 2. Normalize the supplied report by running (do not `cd` into the toolkit —
    this preserves your actual working directory for any relative inputs):
 
    ```
-   "C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\ingest-documents.ts" "<story-report>"
+   "~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/ingest-documents.ts" "<story-report>"
    ```
 
 3. Set `sourceStoryDocumentId` to the normalized Story-report document ID.
@@ -86,10 +86,10 @@ toolkit; use `--root` only if the user supplied one; never overwrite an
 existing version):
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base test-plan --extension md
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base test-plan --extension md
 ```
 
-Derive the same-version machine sidecar as `internal\test-plan-vNNN.json`
+Derive the same-version machine sidecar as `internal/test-plan-vNNN.json`
 beneath the allocated report directory (create the `internal` subfolder if
 it does not already exist). The JSON's parent folder must be named
 `internal` — the validator enforces this. The JSON is an internal
@@ -124,7 +124,7 @@ field labels, one per Markdown line: `Story`, `Acceptance criteria`
 Validate with:
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\validate-assisted-test-plan.ts" "<absolute-internal-json-path>"
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/validate-assisted-test-plan.ts" "<absolute-internal-json-path>"
 ```
 
 Correct any validation failures before returning. Treat this validator

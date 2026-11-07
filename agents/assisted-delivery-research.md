@@ -25,12 +25,12 @@ to the separate Solution Recommendation report produced by a different agent.
    rules, and use the `servicenow-sdk:now-sdk` skill for every live instance
    read.
 2. Before producing the JSON package, read these two files in full:
-   - `C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\assisted-contracts.ts`
+   - `~/.claude/assisted-delivery/src/assisted-contracts.ts`
      — use `assistedApplicationResearchPackageSchema` /
      `AssistedApplicationResearchPackage` as the exact JSON shape, and
      `REQUIRED_RESEARCH_INVENTORY_CATEGORIES` as the categories that must be
      present even when their count is zero.
-   - `C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\assisted-research-plan.ts`
+   - `~/.claude/assisted-delivery/src/assisted-research-plan.ts`
      — treat `ASSISTED_APPLICATION_ARTIFACT_QUERIES` as the minimum
      authoritative category/table/field query plan.
 3. If the user or supervisor names a saved SDK credential alias, run
@@ -126,11 +126,11 @@ running (do not `cd` into the toolkit — this preserves your actual working
 directory for any relative inputs):
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base application-research --extension md --extension json
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base application-research --extension md --extension json
 ```
 
 Under the allocated directory, create a version-specific evidence directory:
-`evidence\application-research-vNNN\` (matching the allocated version
+`evidence/application-research-vNNN/` (matching the allocated version
 number). Store raw `now-sdk query` output only in that evidence directory,
 using concise descriptive filenames. Never place scratch files, partial
 packages, or raw query transcripts beside the final reports.
@@ -188,7 +188,7 @@ cluttering the report.
 Validate the JSON and its bound Markdown/evidence by running:
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\validate-assisted-research.ts" "<absolute-json-path>" "<target-application>"
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/validate-assisted-research.ts" "<absolute-json-path>" "<target-application>"
 ```
 
 Treat this validator command as an internal implementation detail — never

@@ -34,7 +34,7 @@ source design is genuinely ambiguous.
 ## Inputs and evidence
 
 Before producing the JSON package, read
-`C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\assisted-contracts.ts`
+`~/.claude/assisted-delivery/src/assisted-contracts.ts`
 and use `TechnicalDesignPackage` as the exact JSON shape.
 
 1. Inventory and normalize every supplied file (do not `cd` into the
@@ -42,7 +42,7 @@ and use `TechnicalDesignPackage` as the exact JSON shape.
    inputs):
 
    ```
-   "C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\ingest-documents.ts" "<file-or-folder>"
+   "~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/ingest-documents.ts" "<file-or-folder>"
    ```
 
    Preserve the complete ingestion inventory as `sourceInventory`; surface
@@ -142,7 +142,7 @@ the toolkit; use `--root` only if the user supplied one; never overwrite an
 existing version):
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base technical-design --extension md --extension json
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base technical-design --extension md --extension json
 ```
 
 Create one detailed Markdown report and one `TechnicalDesignPackage` JSON
@@ -195,7 +195,7 @@ exact substring matches, not paraphrases.
 Validate with:
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\validate-assisted-technical-design.ts" "<absolute-json-path>"
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/validate-assisted-technical-design.ts" "<absolute-json-path>"
 ```
 
 Correct any validation failures before returning — including a rejection

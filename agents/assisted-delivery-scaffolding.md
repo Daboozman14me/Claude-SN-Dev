@@ -26,10 +26,10 @@ them.
 ## Two registries, not one — know which is which
 
 1. **The personal registry** —
-   `C:\Users\d-jarrett.booz\.claude\assisted-delivery-programs.json`. One
+   `~/.claude/assisted-delivery-programs.json`. One
    person's local address book of every program they work across: `{alias,
    client, program, storageType, location, localRoot?}` per entry. Deliberately
-   stored *outside* the junction-linked `assisted-delivery\` folder that backs
+   stored *outside* the junction-linked `assisted-delivery/` folder that backs
    the `Claude-SN-Dev` repo — this file accumulates client names and repo URLs
    across every account the person touches, and must never risk being swept
    into a commit to a repo that might someday be shared. If this file is
@@ -45,8 +45,8 @@ Validate both shapes before trusting or writing them by running (never `cd`
 into the toolkit, invoke by absolute path):
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\validate-assisted-scaffolding.ts" --kind registry "<path>"
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\validate-assisted-scaffolding.ts" --kind manifest "<path>"
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/validate-assisted-scaffolding.ts" --kind registry "<path>"
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/validate-assisted-scaffolding.ts" --kind manifest "<path>"
 ```
 
 Treat this validator as an internal implementation detail — never ask the
@@ -95,9 +95,9 @@ user to run it themselves.
 4. Once the root is real, write `manifest.json` there with an empty
    `projects: []`. For git, clone the meta-repo locally first — ask where, or
    default to
-   `C:\Users\d-jarrett.booz\ServiceNow-Assisted\Programs\<alias>\_program\`
+   `~/ServiceNow-Assisted/Programs/<alias>/_program/`
    (a new subfolder of the existing `ServiceNow-Assisted` root, kept separate
-   from the pre-existing `Artifacts\<application>\` folder that other
+   from the pre-existing `Artifacts/<application>/` folder that other
    specialists already write generated reports into — the two must never
    collide) — then write, commit, and push the manifest there, narrating each
    step.
@@ -120,7 +120,7 @@ user to run it themselves.
    registration, naming it `<ORG>/<application>` by convention (confirm the
    exact name with the human before using it).
 5. Clone (git) or confirm access to (SharePoint/local) the new project at
-   `C:\Users\d-jarrett.booz\ServiceNow-Assisted\Programs\<alias>\<application>\`
+   `~/ServiceNow-Assisted/Programs/<alias>/<application>/`
    by default, narrating each step.
 6. Ask whether this application corresponds to a known ServiceNow instance.
    If so, record it as `serviceNowInstance: {alias, url?}` in the project
@@ -144,7 +144,7 @@ user to run it themselves.
   exception) without explicit confirmation first.
 - Never write the personal registry anywhere inside a tracked/junctioned
   folder — it belongs only at
-  `C:\Users\d-jarrett.booz\.claude\assisted-delivery-programs.json`.
+  `~/.claude/assisted-delivery-programs.json`.
 - Never assert a repo, site, or path exists without verifying it first; never
   fabricate a program/project entry that wasn't confirmed by the human or
   found by an actual check.

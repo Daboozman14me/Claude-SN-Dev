@@ -2201,3 +2201,289 @@ export const programManifestSchema = z
     }
   });
 export type ProgramManifest = z.infer<typeof programManifestSchema>;
+
+export const CODE_REVIEW_SOURCE_KINDS = [
+  "fluent",
+  "server_script",
+  "client_script",
+  "update_set_xml",
+  "app_xml",
+  "config",
+  "other",
+] as const;
+export const CODE_REVIEW_SEVERITIES = [
+  "critical",
+  "high",
+  "medium",
+  "low",
+  "info",
+] as const;
+export const CODE_REVIEW_CATEGORIES = [
+  "logic",
+  "typo",
+  "security",
+  "performance",
+  "best_practice",
+  "maintainability",
+  "fluent_convention",
+  "upgrade_safety",
+] as const;
+export const CODE_REVIEW_CONFIDENCE_LEVELS = [
+  "confirmed",
+  "likely",
+  "possible",
+] as const;
+export const CODE_REVIEW_VERIFICATION_STATUSES = [
+  "confirmed",
+  "refuted",
+  "not_checked",
+  "not_applicable",
+] as const;
+export const CODE_REVIEW_DECISION_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+  "deferred",
+] as const;
+export const CODE_REVIEW_RESOLUTION_STATUSES = [
+  "resolved",
+  "unresolved",
+  "regressed",
+  "not_applicable",
+] as const;
+
+const lineNumberSchema = z.number().int().min(1);
+const findingIdSchema = z.string().regex(/^F-[0-9]{3,}$/);
+const sysIdSchema = z.string().regex(/^[0-9a-f]{32}$/);
+
+export const codeReviewScriptFieldSchema = z
+  .object({
+    field: z.string().min(1),
+    startLine: lineNumberSchema,
+    endLine: lineNumberSchema,
+  })
+  .strict();
+
+export const codeReviewSourceRecordSchema = z
+  .object({
+    table: z.string().min(1),
+    name: z.string().min(1).optional(),
+    sysId: sysIdSchema.optional(),
+    startLine: lineNumberSchema,
+    endLine: lineNumberSchema,
+    scriptFields: z.array(codeReviewScriptFieldSchema).default([]),
+  })
+  .strict();
+
+export const codeReviewSourceSchema = z
+  .object({
+    id: z.string().min(1).max(200),
+    path: filePathSchema.max(4_096),
+    kind: z.enum(CODE_REVIEW_SOURCE_KINDS),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    lineCount: z.number().int().min(0),
+    records: z.array(codeReviewSourceRecordSchema).default([]),
+  })
+  .strict();
+
+export const codeReviewDecisionSchema = z
+  .object({
+    status: z.enum(CODE_REVIEW_DECISION_STATUSES),
+    note: z.string().min(1).max(10_000).optional(),
+    decidedOn: z.string().datetime().optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.status !== "pending" && !value.decidedOn) {
+      context.addIssue({
+        code: "custom",
+        path: ["decidedOn"],
+        message: "A non-pending decision must record 'decidedOn'.",
+      });
+    }
+  });
+
+export const codeReviewFindingSchema = z
+  .object({
+    id: findingIdSchema,
+    title: z.string().min(1).max(500),
+    severity: z.enum(CODE_REVIEW_SEVERITIES),
+    category: z.enum(CODE_REVIEW_CATEGORIES),
+    confidence: z.enum(CODE_REVIEW_CONFIDENCE_LEVELS),
+    location: z
+      .object({
+        sourceId: z.string().min(1),
+        path: filePathSchema.max(4_096),
+        startLine: lineNumberSchema,
+        endLine: lineNumberSchema,
+        recordTable: z.string().min(1).optional(),
+        recordName: z.string().min(1).optional(),
+        sysId: sysIdSchema.optional(),
+      })
+      .strict(),
+    currentCode: z.string().min(1).max(20_000),
+    suggestedCode: z.string().min(1).max(20_000).nullable(),
+    rationale: z.string().min(1).max(10_000),
+    practiceReference: z.string().min(1).max(1_000),
+    instanceVerification: z
+      .object({
+        status: z.enum(CODE_REVIEW_VERIFICATION_STATUSES),
+        query: z.string().min(1).max(2_000).optional(),
+        result: z.string().min(1).max(5_000).optional(),
+      })
+      .strict(),
+    decision: codeReviewDecisionSchema,
+  })
+  .strict();
+
+export const codeReviewPackageSchema = z
+  .object({
+    contractVersion: z.literal(ASSISTED_CONTRACT_VERSION),
+    packageType: z.literal("code_review"),
+    packageId: z.string().min(1),
+    title: z.string().min(1),
+    summary: z.string().min(1),
+    artifacts: assistedArtifactPairSchema,
+    target: z
+      .object({
+        application: z.string().min(1).optional(),
+        scope: z.string().min(1).optional(),
+        instanceAlias: z.string().min(1).optional(),
+      })
+      .strict(),
+    reviewedSources: z.array(codeReviewSourceSchema).min(1),
+    findings: z.array(codeReviewFindingSchema).default([]),
+    priorReview: z
+      .object({
+        packageId: z.string().min(1),
+        jsonPath: filePathSchema.max(4_096),
+        resolutions: z
+          .array(
+            z
+              .object({
+                findingId: findingIdSchema,
+                status: z.enum(CODE_REVIEW_RESOLUTION_STATUSES),
+                note: z.string().min(1).max(10_000),
+              })
+              .strict(),
+          )
+          .default([]),
+      })
+      .strict()
+      .optional(),
+    assumptions: z.array(observationSchema).default([]),
+    limitations: z.array(observationSchema).default([]),
+    warnings: z.array(z.string().min(1)).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const sources = new Map<string, z.infer<typeof codeReviewSourceSchema>>();
+    value.reviewedSources.forEach((source, index) => {
+      if (sources.has(source.id)) {
+        context.addIssue({
+          code: "custom",
+          path: ["reviewedSources", index, "id"],
+          message: `Duplicate reviewed source id '${source.id}'.`,
+        });
+      }
+      sources.set(source.id, source);
+      source.records.forEach((record, recordIndex) => {
+        if (
+          record.endLine < record.startLine ||
+          record.endLine > source.lineCount
+        ) {
+          context.addIssue({
+            code: "custom",
+            path: ["reviewedSources", index, "records", recordIndex],
+            message: `Record line range ${record.startLine}-${record.endLine} is outside source '${source.id}'.`,
+          });
+        }
+      });
+    });
+
+    const findingIds = new Set<string>();
+    value.findings.forEach((finding, index) => {
+      const path = ["findings", index];
+      if (findingIds.has(finding.id)) {
+        context.addIssue({
+          code: "custom",
+          path: [...path, "id"],
+          message: `Duplicate finding id '${finding.id}'.`,
+        });
+      }
+      findingIds.add(finding.id);
+      const { location } = finding;
+      if (location.endLine < location.startLine) {
+        context.addIssue({
+          code: "custom",
+          path: [...path, "location", "endLine"],
+          message: `Finding '${finding.id}' endLine precedes startLine.`,
+        });
+      }
+      const source = sources.get(location.sourceId);
+      if (!source) {
+        context.addIssue({
+          code: "custom",
+          path: [...path, "location", "sourceId"],
+          message: `Finding '${finding.id}' cites unknown source '${location.sourceId}'.`,
+        });
+      } else {
+        if (resolve(source.path) !== resolve(location.path)) {
+          context.addIssue({
+            code: "custom",
+            path: [...path, "location", "path"],
+            message: `Finding '${finding.id}' path does not match source '${source.id}'.`,
+          });
+        }
+        if (location.endLine > source.lineCount) {
+          context.addIssue({
+            code: "custom",
+            path: [...path, "location", "endLine"],
+            message: `Finding '${finding.id}' ends past the last line of '${source.id}'.`,
+          });
+        }
+      }
+      if (
+        finding.suggestedCode !== null &&
+        finding.suggestedCode.trim() === finding.currentCode.trim()
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: [...path, "suggestedCode"],
+          message: `Finding '${finding.id}' suggestedCode is identical to currentCode; use null when no code change is proposed.`,
+        });
+      }
+      const verification = finding.instanceVerification;
+      const checked =
+        verification.status === "confirmed" ||
+        verification.status === "refuted";
+      if (checked && (!verification.query || !verification.result)) {
+        context.addIssue({
+          code: "custom",
+          path: [...path, "instanceVerification"],
+          message: `Finding '${finding.id}' instance verification '${verification.status}' must record its query and result.`,
+        });
+      }
+      if (checked && !value.target.instanceAlias) {
+        context.addIssue({
+          code: "custom",
+          path: [...path, "instanceVerification"],
+          message: `Finding '${finding.id}' was verified against an instance but target.instanceAlias is not set.`,
+        });
+      }
+    });
+
+    const resolvedIds = new Set<string>();
+    value.priorReview?.resolutions.forEach((resolution, index) => {
+      if (resolvedIds.has(resolution.findingId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["priorReview", "resolutions", index, "findingId"],
+          message: `Duplicate prior-review resolution for '${resolution.findingId}'.`,
+        });
+      }
+      resolvedIds.add(resolution.findingId);
+    });
+  });
+export type CodeReviewPackage = z.infer<typeof codeReviewPackageSchema>;
+export type CodeReviewFinding = z.infer<typeof codeReviewFindingSchema>;

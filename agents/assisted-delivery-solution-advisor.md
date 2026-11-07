@@ -32,10 +32,10 @@ Research Report produced by a different agent).
 
 Before producing the JSON package, read these two files in full:
 
-- `C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\assisted-contracts.ts`
+- `~/.claude/assisted-delivery/src/assisted-contracts.ts`
   — use `solutionRecommendationPackageSchema` /
   `SolutionRecommendationPackage` as the exact JSON shape.
-- `C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\document-ingestion.ts`
+- `~/.claude/assisted-delivery/src/document-ingestion.ts`
   — understand how supplied files become normalized, citable documents and
   units.
 
@@ -46,7 +46,7 @@ Then:
    inputs):
 
    ```
-   "C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\ingest-documents.ts" "<file-or-folder>"
+   "~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/ingest-documents.ts" "<file-or-folder>"
    ```
 
    Surface every unreadable or unsupported input as a warning rather than
@@ -107,7 +107,7 @@ running (do not `cd` into the toolkit; use `--root` only if the user
 supplied one; never overwrite an existing version):
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base solution-recommendation --extension html --extension json
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base solution-recommendation --extension html --extension json
 ```
 
 Write one self-contained HTML report at the allocated path. It must:
@@ -134,7 +134,7 @@ client, application, and instance names, never placeholders.
 Validate the JSON and its bound HTML by running:
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\validate-assisted-recommendation.ts" "<absolute-json-path>"
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/validate-assisted-recommendation.ts" "<absolute-json-path>"
 ```
 
 Correct any validation failures before returning. Treat this validator

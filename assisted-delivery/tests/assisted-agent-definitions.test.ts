@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -9,8 +9,16 @@ const AGENTS_DIRECTORY = join(homedir(), ".claude", "agents");
 const SPECIALIST_TOOLS = "tools: Read, Glob, Grep, Bash, Write";
 const SUPERVISOR_TOOLS = "tools: Read, Glob, Grep, Bash, Agent";
 
+// Disabled agents are renamed to .md.disabled so Claude Code does not register them.
+const DISABLED_AGENTS = new Set(["assisted-delivery-level-of-effort"]);
+
+function agentPath(name: string): string {
+  const suffix = DISABLED_AGENTS.has(name) ? ".md.disabled" : ".md";
+  return join(AGENTS_DIRECTORY, `${name}${suffix}`);
+}
+
 function readAgent(name: string): string {
-  return readFileSync(join(AGENTS_DIRECTORY, `${name}.md`), "utf8");
+  return readFileSync(agentPath(name), "utf8");
 }
 
 const EXPECTED_AGENTS = [
@@ -22,6 +30,7 @@ const EXPECTED_AGENTS = [
   "assisted-delivery-requirements-extractor",
   "assisted-delivery-level-of-effort",
   "assisted-delivery-scaffolding",
+  "assisted-delivery-code-review",
   "assisted-delivery-supervisor",
 ];
 
@@ -31,6 +40,13 @@ test("every assisted-delivery agent is present and readable", () => {
       () => readAgent(name),
       `Expected readable agent definition for '${name}'.`,
     );
+    if (DISABLED_AGENTS.has(name)) {
+      assert.equal(
+        existsSync(join(AGENTS_DIRECTORY, `${name}.md`)),
+        false,
+        `Disabled agent '${name}' must not also exist as an active .md file.`,
+      );
+    }
   }
 });
 
@@ -48,13 +64,37 @@ test("specialists hold no Agent tool and the supervisor holds no Write tool", ()
   }
 });
 
-test("only the research agent carries ServiceNow SDK skills", () => {
+test("only research and code review carry ServiceNow SDK skills", () => {
   const research = readAgent("assisted-delivery-research");
   assert.match(research, /^skills: application-audit, servicenow-sdk:now-sdk$/m);
+  const codeReview = readAgent("assisted-delivery-code-review");
+  assert.match(codeReview, /^skills: servicenow-sdk:now-sdk$/m);
 
   for (const name of EXPECTED_AGENTS) {
-    if (name === "assisted-delivery-research") continue;
+    if (name === "assisted-delivery-research" || name === "assisted-delivery-code-review") continue;
     assert.doesNotMatch(readAgent(name), /^skills:/m);
+  }
+});
+
+test("code reviewer stays read-only and leaves every decision to a human", () => {
+  const agent = readAgent("assisted-delivery-code-review");
+  assert.match(agent, /^permissionMode: bypassPermissions$/m);
+  assert.match(agent, /codeReviewPackageSchema/);
+  assert.match(agent, /index-code-review-sources\.ts/);
+  assert.match(agent, /validate-assisted-code-review\.ts" "<absolute-json-path>" --fresh/);
+  assert.match(agent, /--base code-review --extension html --extension json/);
+  assert.match(agent, /ServiceNow's published guidance/);
+  assert.match(agent, /Write only the allocated HTML and JSON artifacts/);
+  assert.match(agent, /Never edit, reformat, move, or delete any reviewed file/);
+  assert.match(agent, /Never record, change, or infer approval decisions/);
+  assert.match(agent, /Perform no ServiceNow writes, installs, deployments, or credential\s+changes/);
+  assert.match(agent, /never construct raw REST calls/);
+  assert.match(agent, /Never request or accept\s+a password/);
+  assert.match(agent, /copied \*\*verbatim\*\*/);
+  assert.match(agent, /<!-- finding:F-NNN -->/);
+  assert.match(agent, /Output composition — avoid the per-turn output cap/);
+  for (const section of ["Summary", "Scope and Sources", "Findings", "Instance Checks", "Limitations"]) {
+    assert.match(agent, new RegExp("`" + section + "`"));
   }
 });
 
@@ -68,6 +108,10 @@ test("supervisor routes the complete assisted workflow", () => {
   assert.match(agent, /assisted-delivery-requirements-extractor/);
   assert.match(agent, /assisted-delivery-level-of-effort/);
   assert.match(agent, /assisted-delivery-scaffolding/);
+  assert.match(agent, /assisted-delivery-code-review/);
+  assert.match(agent, /nine specialists above/);
+  assert.match(agent, /never records approve,\s+reject, or defer decisions/);
+  assert.match(agent, /read-only SDK queries solely to\s+verify facts the reviewed code depends on/);
   assert.match(agent, /never require them to run\s+npm/i);
   assert.match(agent, /external systems/i);
   assert.match(agent, /designConstraints/);
@@ -97,7 +141,7 @@ test("test design creates traceable batch plans without execution", () => {
   assert.match(agent, /source=inferred/);
   assert.match(agent, /coverageGap/);
   assert.match(agent, /Every Story and every criterion/);
-  assert.match(agent, /internal\\test-plan-vNNN\.json/);
+  assert.match(agent, /internal[\\/]test-plan-vNNN\.json/);
   assert.match(agent, /writes of any kind to ServiceNow,\s+VersionOne\/Jira\/ServiceNow Agile/);
 });
 
@@ -119,7 +163,7 @@ test("technical design supports creation and advisory evaluation", () => {
 test("research is comprehensive and isolates raw evidence", () => {
   const agent = readAgent("assisted-delivery-research");
   assert.match(agent, /read-only/i);
-  assert.match(agent, /evidence\\application-research-vNNN/);
+  assert.match(agent, /evidence[\\/]application-research-vNNN/);
   assert.match(agent, /embed complete query responses/);
   assert.match(agent, /current-state research limitations/);
   assert.match(agent, /Do not search for internal artifacts named after an external system/);
@@ -187,7 +231,7 @@ test("level-of-effort scoper never guesses a decision and never writes the origi
   );
   assert.match(agent, /no\s+decisions at all/);
   assert.match(agent, /Never fill a confident\s+"No"/);
-  assert.match(agent, /cache\\loe-workbook\\baseline/);
+  assert.match(agent, /cache[\\/]loe-workbook[\\/]baseline/);
   assert.match(agent, /one question\s+at a time/);
   assert.match(agent, /Never write to, rename, or otherwise modify the user's original `\.xlsm`/);
   assert.match(agent, /summary\/section-header row/);

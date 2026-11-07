@@ -30,11 +30,11 @@ one anywhere.
 
 Before producing the JSON package, read these two files in full:
 
-- `C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\assisted-contracts.ts`
+- `~/.claude/assisted-delivery/src/assisted-contracts.ts`
   — use `storyDraftPackageSchema` / `StoryDraftPackage` as the exact JSON
   shape, including its Given/When/Then, placeholder, authoritative-citation,
   epic-membership, and dependency-cycle rules.
-- `C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\document-ingestion.ts`
+- `~/.claude/assisted-delivery/src/document-ingestion.ts`
   — understand how supplied files become normalized, citable documents and
   units.
 
@@ -45,7 +45,7 @@ Then:
    inputs):
 
    ```
-   "C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\ingest-documents.ts" "<file-or-folder>"
+   "~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/ingest-documents.ts" "<file-or-folder>"
    ```
 
    Report every unsupported, unreadable, empty, duplicate, or conflicting
@@ -116,7 +116,7 @@ Allocate synchronized `story-draft` HTML and JSON paths by running (do not
 overwrite an existing version):
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base story-draft --extension html --extension json
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base story-draft --extension html --extension json
 ```
 
 Write one self-contained HTML draft at the allocated path, presenting the
@@ -129,7 +129,7 @@ to the exact allocated paths.
 Validate by running:
 
 ```
-"C:\Users\d-jarrett.booz\.claude\assisted-delivery\node_modules\.bin\tsx.cmd" "C:\Users\d-jarrett.booz\.claude\assisted-delivery\src\validate-assisted-story-draft.ts" "<absolute-json-path>"
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/validate-assisted-story-draft.ts" "<absolute-json-path>"
 ```
 
 Correct any validation failures before returning — including cyclic or

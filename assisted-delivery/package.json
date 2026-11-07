@@ -15,7 +15,11 @@
     "validate:assisted-stories": "tsx src/validate-assisted-story-draft.ts",
     "validate:assisted-requirements": "tsx src/validate-assisted-requirements.ts",
     "validate:assisted-loe": "tsx src/validate-assisted-loe.ts",
-    "validate:assisted-scaffolding": "tsx src/validate-assisted-scaffolding.ts"
+    "validate:assisted-scaffolding": "tsx src/validate-assisted-scaffolding.ts",
+    "code-review:index": "tsx src/index-code-review-sources.ts",
+    "validate:assisted-code-review": "tsx src/validate-assisted-code-review.ts",
+    "code-review:decide": "tsx src/record-code-review-decision.ts",
+    "code-review:drift": "tsx src/check-code-review-drift.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
