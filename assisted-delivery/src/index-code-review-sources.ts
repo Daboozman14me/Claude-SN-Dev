@@ -217,6 +217,25 @@ function fluentProjectFor(path: string): FluentProject | undefined {
   }
 }
 
+export function walkDirectory(
+  directory: string,
+  skippedDirectories: ReadonlySet<string> = SKIPPED_DIRECTORIES,
+): string[] {
+  const files: string[] = [];
+  const walk = (current: string): void => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const full = join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (!skippedDirectories.has(entry.name)) walk(full);
+      } else if (entry.isFile()) {
+        files.push(full);
+      }
+    }
+  };
+  walk(resolve(directory));
+  return files;
+}
+
 function collectFiles(
   input: string,
   skipped: CodeReviewSourceIndex["skipped"],
@@ -227,24 +246,13 @@ function collectFiles(
     return [];
   }
   if (statSync(absolute).isFile()) return [absolute];
-  const files: string[] = [];
-  const walk = (directory: string): void => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const full = join(directory, entry.name);
-      if (entry.isDirectory()) {
-        if (SKIPPED_DIRECTORIES.has(entry.name)) continue;
-        walk(full);
-      } else if (entry.isFile()) {
-        if (entry.name === "package-lock.json") {
-          skipped.push({ path: full, reason: "lock file" });
-        } else if (WALKED_EXTENSIONS.has(extname(entry.name).toLocaleLowerCase())) {
-          files.push(full);
-        }
-      }
+  return walkDirectory(absolute).filter((full) => {
+    if (basename(full) === "package-lock.json") {
+      skipped.push({ path: full, reason: "lock file" });
+      return false;
     }
-  };
-  walk(absolute);
-  return files;
+    return WALKED_EXTENSIONS.has(extname(full).toLocaleLowerCase());
+  });
 }
 
 export function indexCodeReviewSources(inputs: string[]): CodeReviewSourceIndex {

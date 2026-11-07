@@ -35,8 +35,10 @@ nothing.
 
 ## 3. Fix
 
-Before applying approved fixes, confirm the code hasn't changed since the
-review:
+Ask for the approved findings to be applied by `assisted-delivery-code-writer`
+in **fix mode** (see `code-writer-workflow.md`). It checks drift, previews,
+and applies only approved, unchanged findings using the toolkit, then builds
+the project. You can also check drift yourself first:
 
 ```
 npm run code-review:drift -- "<code-review-vNNN.json>" --approved-only

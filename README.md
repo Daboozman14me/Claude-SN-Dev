@@ -9,13 +9,15 @@ project artifacts (those live separately, outside this repo).
 ## What's in here
 
 - `agents/` — the subagent definitions: `assisted-delivery-supervisor` (the
-  orchestration hub) plus eight active specialists (`requirements-extractor`,
+  orchestration hub) plus nine active specialists (`requirements-extractor`,
   `research`, `solution-advisor`, `technical-design`, `story-drafter`,
-  `test-design`, `scaffolding`, `code-review`), and one disabled
+  `test-design`, `scaffolding`, `code-review`, `code-writer`), and one disabled
   work-in-progress agent (`assisted-delivery-level-of-effort.md.disabled` —
   still undersizes on a second clean engagement; do not re-enable until
-  refined). Only `research` and `code-review` may query a ServiceNow
-  instance, and both are read-only.
+  refined). Only `research`, `code-review`, and `code-writer` may query a
+  ServiceNow instance, and all three are read-only. `code-writer` is the only
+  specialist that edits source code, and only inside the project folder named
+  for each run; no agent commits, pushes, or deploys.
 - `assisted-delivery/` — the TypeScript toolkit the agents call into
   (`src/`, `tests/`, `package.json`). Run `npm install` then `npm test` here
   after cloning; `node_modules/` and the runtime `cache/` folder are
@@ -29,6 +31,8 @@ project artifacts (those live separately, outside this repo).
   toolkit needs, for setting it up on another machine.
 - `docs/code-review-workflow.md` — how a code review flows from report to
   human decisions to fixes to re-review.
+- `docs/code-writer-workflow.md` — how the code writer builds a Fluent app
+  from stories and a technical design, and applies approved review fixes.
 
 ## How this repo is wired up on this machine
 

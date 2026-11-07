@@ -31,6 +31,7 @@ const EXPECTED_AGENTS = [
   "assisted-delivery-level-of-effort",
   "assisted-delivery-scaffolding",
   "assisted-delivery-code-review",
+  "assisted-delivery-code-writer",
   "assisted-delivery-supervisor",
 ];
 
@@ -64,15 +65,61 @@ test("specialists hold no Agent tool and the supervisor holds no Write tool", ()
   }
 });
 
-test("only research and code review carry ServiceNow SDK skills", () => {
+test("only research, code review, and code writer carry ServiceNow SDK skills", () => {
   const research = readAgent("assisted-delivery-research");
   assert.match(research, /^skills: application-audit, servicenow-sdk:now-sdk$/m);
-  const codeReview = readAgent("assisted-delivery-code-review");
-  assert.match(codeReview, /^skills: servicenow-sdk:now-sdk$/m);
+  const sdkOnly = ["assisted-delivery-code-review", "assisted-delivery-code-writer"];
+  for (const name of sdkOnly) {
+    assert.match(readAgent(name), /^skills: servicenow-sdk:now-sdk$/m);
+  }
 
   for (const name of EXPECTED_AGENTS) {
-    if (name === "assisted-delivery-research" || name === "assisted-delivery-code-review") continue;
+    if (name === "assisted-delivery-research" || sdkOnly.includes(name)) continue;
     assert.doesNotMatch(readAgent(name), /^skills:/m);
+  }
+});
+
+test("code writer stays inside its project, never deploys or commits, and applies only approved fixes", () => {
+  const agent = readAgent("assisted-delivery-code-writer");
+  assert.match(agent, /^permissionMode: bypassPermissions$/m);
+  assert.match(agent, /codeImplementationPackageSchema/);
+  assert.match(agent, /snapshot-fluent-project\.ts/);
+  assert.match(agent, /apply-code-review-fixes\.ts" "<code-review\.json>" --dry-run/);
+  assert.match(agent, /validate-assisted-code-implementation\.ts" "<absolute-json-path>" --verify-changes/);
+  assert.match(agent, /--base code-implementation --extension html --extension json/);
+  assert.match(agent, /git -C "<project>" status --porcelain/);
+  assert.match(agent, /Write only inside the target project folder and the allocated HTML and\s+JSON artifacts/);
+  assert.match(agent, /Never deploy: never run `now-sdk install`, `npm run deploy`/);
+  assert.match(agent, /Never run git commands that change state/);
+  assert.match(agent, /Never apply a finding that is not approved/);
+  assert.match(agent, /\*\*Never apply a fix by hand\*\*/);
+  assert.match(agent, /\*\*Never delete or rename an existing definition or its `\$id` key\*\*/);
+  assert.match(agent, /never invent,\s+copy, or reuse a sys_id/);
+  assert.match(agent, /never request or accept a password/);
+  assert.match(agent, /Stop after three consecutive failing\s+builds/);
+  assert.match(agent, /Output composition — avoid the per-turn output cap/);
+});
+
+test("code writer and code reviewer hold code to the same ServiceNow practices", () => {
+  const writer = readAgent("assisted-delivery-code-writer");
+  const reviewer = readAgent("assisted-delivery-code-review");
+  const shared = [
+    /current\.update\(\)/,
+    /setLimit/,
+    /GlideAggregate/,
+    /gs\.log/,
+    /eval/,
+    /getValue/,
+    /hard-coded sys_ids/i,
+    /GlideAjax/,
+    /isLoading/,
+    /ref_qual_elements/,
+    /role \*\*names\*\*|role names/i,
+    /installMethod: 'demo'/,
+  ];
+  for (const practice of shared) {
+    assert.match(writer, practice, `writer missing ${practice}`);
+    assert.match(reviewer, practice, `reviewer missing ${practice}`);
   }
 });
 
@@ -109,9 +156,13 @@ test("supervisor routes the complete assisted workflow", () => {
   assert.match(agent, /assisted-delivery-level-of-effort/);
   assert.match(agent, /assisted-delivery-scaffolding/);
   assert.match(agent, /assisted-delivery-code-review/);
-  assert.match(agent, /nine specialists above/);
+  assert.match(agent, /assisted-delivery-code-writer/);
+  assert.match(agent, /ten specialists above/);
   assert.match(agent, /never records approve,\s+reject, or defer decisions/);
-  assert.match(agent, /read-only SDK queries solely to\s+verify facts the reviewed code depends on/);
+  assert.match(agent, /may\s+make read-only SDK queries solely to verify facts/);
+  assert.match(agent, /no specialist ever commits, pushes, or deploys/);
+  assert.match(agent, /`assisted-delivery-code-writer` may edit source only\s+inside the project folder the user names/);
+  assert.match(agent, /Never send a review whose findings are all still pending/);
   assert.match(agent, /never require them to run\s+npm/i);
   assert.match(agent, /external systems/i);
   assert.match(agent, /designConstraints/);

@@ -19,7 +19,10 @@
     "code-review:index": "tsx src/index-code-review-sources.ts",
     "validate:assisted-code-review": "tsx src/validate-assisted-code-review.ts",
     "code-review:decide": "tsx src/record-code-review-decision.ts",
-    "code-review:drift": "tsx src/check-code-review-drift.ts"
+    "code-review:drift": "tsx src/check-code-review-drift.ts",
+    "code-writer:snapshot": "tsx src/snapshot-fluent-project.ts",
+    "code-writer:apply-fixes": "tsx src/apply-code-review-fixes.ts",
+    "validate:assisted-code-implementation": "tsx src/validate-assisted-code-implementation.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

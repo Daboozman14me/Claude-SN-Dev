@@ -133,6 +133,8 @@ client code, catalog client scripts)
   global), references by raw sys_id to records defined in the same project.
 - `Acl` definitions with no `roles`, condition, or script; notification
   `triggerConditions` inconsistent with how the notification is fired.
+- Module and menu `roles` holding role sys_ids instead of role **names**;
+  reference qualifiers whose `ref_qual_elements` are not `;`-separated.
 - Server logic inlined where a module in `src/server/` is expected; `$meta`
   misuse; demo data without `installMethod: 'demo'`.
 

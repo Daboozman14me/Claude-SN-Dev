@@ -2487,3 +2487,259 @@ export const codeReviewPackageSchema = z
   });
 export type CodeReviewPackage = z.infer<typeof codeReviewPackageSchema>;
 export type CodeReviewFinding = z.infer<typeof codeReviewFindingSchema>;
+
+export const CODE_IMPLEMENTATION_MODES = ["build", "fix"] as const;
+export const CODE_IMPLEMENTATION_REFERENCE_KINDS = [
+  "story",
+  "acceptance_criterion",
+  "design_decision",
+  "finding",
+] as const;
+export const CODE_IMPLEMENTATION_CHANGE_ACTIONS = [
+  "created",
+  "modified",
+  "deleted",
+] as const;
+export const CODE_IMPLEMENTATION_STORY_STATUSES = [
+  "implemented",
+  "partial",
+  "blocked",
+  "not_started",
+] as const;
+export const CODE_IMPLEMENTATION_FIX_OUTCOMES = [
+  "applied",
+  "skipped_drift",
+  "skipped_not_approved",
+  "skipped_no_change",
+  "failed",
+] as const;
+export const CODE_IMPLEMENTATION_BUILD_STATUSES = [
+  "passed",
+  "failed",
+  "not_run",
+] as const;
+
+const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
+const packageReferenceSchema = z
+  .object({
+    path: filePathSchema.max(4_096),
+    packageId: z.string().min(1).optional(),
+  })
+  .strict();
+
+// Fluent definitions and keys.ts must never be deleted by the writer: removing them
+// generates upgrade-time deletes on every instance the app is installed on.
+function isFluentDefinitionPath(path: string): boolean {
+  return /\.now\.ts$/i.test(path) || /(^|[\\/])keys\.ts$/i.test(path);
+}
+
+function isInsideRoot(root: string, path: string): boolean {
+  const fromRoot = relative(resolve(root), resolve(path));
+  return fromRoot !== "" && !fromRoot.startsWith("..") && !isAbsolute(fromRoot);
+}
+
+export const codeImplementationChangeSchema = z
+  .object({
+    path: filePathSchema.max(4_096),
+    action: z.enum(CODE_IMPLEMENTATION_CHANGE_ACTIONS),
+    sha256After: sha256Schema.optional(),
+    implements: z
+      .array(
+        z
+          .object({
+            kind: z.enum(CODE_IMPLEMENTATION_REFERENCE_KINDS),
+            id: z.string().min(1).max(200),
+          })
+          .strict(),
+      )
+      .min(1),
+    summary: z.string().min(1).max(5_000),
+  })
+  .strict();
+
+export const codeImplementationPackageSchema = z
+  .object({
+    contractVersion: z.literal(ASSISTED_CONTRACT_VERSION),
+    packageType: z.literal("code_implementation"),
+    packageId: z.string().min(1),
+    title: z.string().min(1),
+    summary: z.string().min(1),
+    artifacts: assistedArtifactPairSchema,
+    mode: z.enum(CODE_IMPLEMENTATION_MODES),
+    project: z
+      .object({
+        root: filePathSchema.max(4_096),
+        scope: z.string().regex(/^x_[a-z0-9_]+$/).max(18),
+        appName: z.string().min(1).max(200),
+        created: z.boolean(),
+      })
+      .strict(),
+    inputs: z
+      .object({
+        storyPackage: packageReferenceSchema.optional(),
+        technicalDesignPackage: packageReferenceSchema.optional(),
+        testPlan: packageReferenceSchema.optional(),
+        codeReview: packageReferenceSchema.optional(),
+      })
+      .strict(),
+    requestedStoryIds: z.array(z.string().min(1)).default([]),
+    baseline: z
+      .object({
+        root: filePathSchema.max(4_096).optional(),
+        capturedAt: z.string().datetime(),
+        files: z
+          .array(z.object({ path: filePathSchema.max(4_096), sha256: sha256Schema }).strict())
+          .default([]),
+      })
+      .strict(),
+    changes: z.array(codeImplementationChangeSchema).default([]),
+    storyCoverage: z
+      .array(
+        z
+          .object({
+            storyId: z.string().min(1),
+            status: z.enum(CODE_IMPLEMENTATION_STORY_STATUSES),
+            note: z.string().min(1).max(5_000),
+          })
+          .strict(),
+      )
+      .default([]),
+    fixResults: z
+      .array(
+        z
+          .object({
+            findingId: findingIdSchema,
+            outcome: z.enum(CODE_IMPLEMENTATION_FIX_OUTCOMES),
+            detail: z.string().min(1).max(5_000),
+          })
+          .strict(),
+      )
+      .default([]),
+    build: z
+      .object({
+        command: z.string().min(1).max(500),
+        status: z.enum(CODE_IMPLEMENTATION_BUILD_STATUSES),
+        errorCount: z.number().int().min(0),
+        warningCount: z.number().int().min(0),
+        excerpt: z.string().max(10_000).optional(),
+      })
+      .strict(),
+    instanceChecks: z
+      .array(
+        z
+          .object({
+            query: z.string().min(1).max(2_000),
+            result: z.string().min(1).max(5_000),
+          })
+          .strict(),
+      )
+      .default([]),
+    assumptions: z.array(observationSchema).default([]),
+    limitations: z.array(observationSchema).default([]),
+    warnings: z.array(z.string().min(1)).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const issue = (path: (string | number)[], message: string): void => {
+      context.addIssue({ code: "custom", path, message });
+    };
+
+    if (value.mode === "build") {
+      if (!value.inputs.storyPackage || !value.inputs.technicalDesignPackage) {
+        issue(["inputs"], "Build mode requires both a storyPackage and a technicalDesignPackage.");
+      }
+      if (value.inputs.codeReview) issue(["inputs", "codeReview"], "Build mode must not take a codeReview input.");
+      if (value.requestedStoryIds.length === 0) {
+        issue(["requestedStoryIds"], "Build mode requires at least one requested story id.");
+      }
+      if (value.fixResults.length > 0) issue(["fixResults"], "Build mode cannot record fixResults.");
+      const covered = new Set(value.storyCoverage.map((entry) => entry.storyId));
+      for (const storyId of value.requestedStoryIds) {
+        if (!covered.has(storyId)) {
+          issue(["storyCoverage"], `Requested story '${storyId}' has no storyCoverage entry.`);
+        }
+      }
+    } else {
+      if (!value.inputs.codeReview) issue(["inputs", "codeReview"], "Fix mode requires a codeReview input.");
+      if (value.requestedStoryIds.length > 0 || value.storyCoverage.length > 0) {
+        issue(["requestedStoryIds"], "Fix mode cannot request or cover stories.");
+      }
+      if (value.fixResults.length === 0) issue(["fixResults"], "Fix mode must record a fixResults entry per finding.");
+      if (value.project.created) issue(["project", "created"], "Fix mode cannot create a project.");
+    }
+
+    if (value.project.created && value.baseline.files.length > 0) {
+      issue(["baseline", "files"], "A newly created project must start from an empty baseline.");
+    }
+    if (value.baseline.root && resolve(value.baseline.root) !== resolve(value.project.root)) {
+      issue(["baseline", "root"], "The baseline snapshot was taken of a different folder than project.root.");
+    }
+    if (value.build.status === "passed" && value.build.errorCount > 0) {
+      issue(["build", "errorCount"], "A passed build cannot report errors.");
+    }
+
+    const baselinePaths = new Set(value.baseline.files.map((file) => resolve(file.path)));
+    value.baseline.files.forEach((file, index) => {
+      if (!isInsideRoot(value.project.root, file.path)) {
+        issue(["baseline", "files", index, "path"], `Baseline file '${file.path}' is outside the project root.`);
+      }
+    });
+
+    const changedPaths = new Set<string>();
+    value.changes.forEach((change, index) => {
+      const path = ["changes", index];
+      const resolved = resolve(change.path);
+      if (changedPaths.has(resolved)) issue([...path, "path"], `Duplicate change for '${change.path}'.`);
+      changedPaths.add(resolved);
+      if (!isInsideRoot(value.project.root, change.path)) {
+        issue([...path, "path"], `Change '${change.path}' is outside the project root.`);
+      }
+      if (change.action === "deleted") {
+        if (change.sha256After) issue([...path, "sha256After"], "A deleted file has no sha256After.");
+        if (isFluentDefinitionPath(change.path)) {
+          issue([...path, "action"], `Deleting Fluent definition '${change.path}' is forbidden; report it instead.`);
+        }
+      } else if (!change.sha256After) {
+        issue([...path, "sha256After"], `Change '${change.path}' must record sha256After.`);
+      }
+      const inBaseline = baselinePaths.has(resolved);
+      if (change.action === "created" && inBaseline) {
+        issue([...path, "action"], `'${change.path}' already existed in the baseline; use 'modified'.`);
+      }
+      if (change.action !== "created" && !inBaseline) {
+        issue([...path, "action"], `'${change.path}' was not in the baseline, so it cannot be ${change.action}.`);
+      }
+      if (value.mode === "build" && change.implements.some((ref) => ref.kind === "finding")) {
+        issue([...path, "implements"], "Build-mode changes implement stories or design decisions, not findings.");
+      }
+      if (value.mode === "fix" && change.implements.some((ref) => ref.kind !== "finding")) {
+        issue([...path, "implements"], "Fix-mode changes implement approved findings only.");
+      }
+    });
+
+    const appliedIds = new Set<string>();
+    const resultIds = new Set<string>();
+    value.fixResults.forEach((result, index) => {
+      if (resultIds.has(result.findingId)) {
+        issue(["fixResults", index, "findingId"], `Duplicate fixResults entry for '${result.findingId}'.`);
+      }
+      resultIds.add(result.findingId);
+      if (result.outcome === "applied") appliedIds.add(result.findingId);
+    });
+    const implementedFindings = new Set(
+      value.changes.flatMap((change) =>
+        change.implements.filter((ref) => ref.kind === "finding").map((ref) => ref.id),
+      ),
+    );
+    for (const id of appliedIds) {
+      if (!implementedFindings.has(id)) {
+        issue(["fixResults"], `Finding '${id}' is marked applied but no change implements it.`);
+      }
+    }
+    for (const id of implementedFindings) {
+      if (!appliedIds.has(id)) {
+        issue(["changes"], `A change implements finding '${id}', which is not marked applied.`);
+      }
+    }
+  });
+export type CodeImplementationPackage = z.infer<typeof codeImplementationPackageSchema>;
