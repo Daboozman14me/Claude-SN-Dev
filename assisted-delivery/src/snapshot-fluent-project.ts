@@ -1,6 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { isDirectExecution } from "./direct-execution.js";
+import { takeIntoOption, writeIntoPackage } from "./write-into-package.js";
 import { walkDirectory } from "./index-code-review-sources.js";
 import { fileSha256 } from "./validate-assisted-code-review.js";
 
@@ -54,17 +55,24 @@ export function diffSnapshots(
 }
 
 if (isDirectExecution(import.meta.url, process.argv[1])) {
-  const root = process.argv[2];
-  if (!root) {
-    process.stderr.write("Usage: npm run code-writer:snapshot -- <project-root>\n");
-    process.exitCode = 1;
-  } else {
-    try {
-      process.stdout.write(`${JSON.stringify(snapshotFluentProject(root), null, 2)}\n`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`Project snapshot failed: ${message}\n`);
+  try {
+    const { into, rest } = takeIntoOption(process.argv.slice(2));
+    const root = rest[0];
+    if (!root) {
+      process.stderr.write("Usage: npm run code-writer:snapshot -- <project-root> [--into <code-implementation.json>]\n");
       process.exitCode = 1;
+    } else {
+      const snapshot = snapshotFluentProject(root);
+      if (into) {
+        writeIntoPackage(into, "baseline", snapshot);
+        process.stdout.write(`Wrote baseline (${snapshot.files.length} files) into ${resolve(into)}\n`);
+      } else {
+        process.stdout.write(`${JSON.stringify(snapshot, null, 2)}\n`);
+      }
     }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Project snapshot failed: ${message}\n`);
+    process.exitCode = 1;
   }
 }

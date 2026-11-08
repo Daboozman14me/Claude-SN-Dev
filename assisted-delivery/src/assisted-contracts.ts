@@ -2371,6 +2371,13 @@ export const codeReviewPackageSchema = z
       })
       .strict()
       .optional(),
+    implementation: z
+      .object({
+        packageId: z.string().min(1),
+        jsonPath: filePathSchema.max(4_096),
+      })
+      .strict()
+      .optional(),
     assumptions: z.array(observationSchema).default([]),
     limitations: z.array(observationSchema).default([]),
     warnings: z.array(z.string().min(1)).default([]),
@@ -2490,6 +2497,7 @@ export type CodeReviewFinding = z.infer<typeof codeReviewFindingSchema>;
 
 export const CODE_IMPLEMENTATION_MODES = ["build", "fix"] as const;
 export const CODE_IMPLEMENTATION_REFERENCE_KINDS = [
+  "request",
   "story",
   "acceptance_criterion",
   "design_decision",
@@ -2511,6 +2519,7 @@ export const CODE_IMPLEMENTATION_FIX_OUTCOMES = [
   "skipped_drift",
   "skipped_not_approved",
   "skipped_no_change",
+  "skipped_out_of_scope",
   "failed",
 ] as const;
 export const CODE_IMPLEMENTATION_BUILD_STATUSES = [
@@ -2557,6 +2566,78 @@ export const codeImplementationChangeSchema = z
   })
   .strict();
 
+export const CODE_IMPLEMENTATION_OUTPUT_FORMS = [
+  "fluent",
+  "copy_paste",
+  "background_script",
+  "fix_script",
+] as const;
+export const CODE_IMPLEMENTATION_APP_FORMS = ["fluent", "classic"] as const;
+export const CODE_IMPLEMENTATION_APP_LOCATIONS = ["local_project", "git_repo", "instance"] as const;
+export const CODE_IMPLEMENTATION_CHANGE_SOURCES = ["stories", "findings", "request"] as const;
+export const CODE_IMPLEMENTATION_STATE_METHODS = [
+  "local_project",
+  "instance_query",
+  "update_set_export",
+  "research_report",
+] as const;
+export const CODE_IMPLEMENTATION_PARITY = ["matches", "known_differences", "differs", "not_checked"] as const;
+export const CODE_IMPLEMENTATION_STATE_CHECKS = ["matches", "differs", "missing", "new"] as const;
+export const CODE_IMPLEMENTATION_RUN_STATUSES = ["completed", "stopped"] as const;
+export const CODE_IMPLEMENTATION_KNOWN_DIFFERENCE_KINDS = ["records", "undeployed_commits"] as const;
+export const CODE_IMPLEMENTATION_DELIVERABLE_KINDS = [
+  "background_script",
+  "fix_script",
+  "rollback_script",
+  "readme",
+  "paste_instructions",
+] as const;
+
+export const codeImplementationDeliverableSchema = z
+  .object({
+    id: z.string().regex(/^D-[0-9]{2,}$/),
+    kind: z.enum(CODE_IMPLEMENTATION_DELIVERABLE_KINDS),
+    title: z.string().min(1).max(500),
+    path: filePathSchema.max(4_096).optional(),
+    sha256: sha256Schema.optional(),
+    order: z.number().int().min(1).optional(),
+    applicationScope: z.string().min(1).max(100).optional(),
+    updateSetGuidance: z.string().min(1).max(2_000).optional(),
+    rollbackFor: z.string().regex(/^D-[0-9]{2,}$/).optional(),
+    targets: z
+      .array(
+        z
+          .object({
+            table: z.string().min(1),
+            name: z.string().min(1),
+            field: z.string().min(1).optional(),
+          })
+          .strict(),
+      )
+      .default([]),
+    implements: z
+      .array(
+        z
+          .object({
+            kind: z.enum(CODE_IMPLEMENTATION_REFERENCE_KINDS),
+            id: z.string().min(1).max(200),
+          })
+          .strict(),
+      )
+      .default([]),
+  })
+  .strict();
+
+const PRIMARY_SCRIPT_KIND = {
+  background_script: "background_script",
+  fix_script: "fix_script",
+} as const;
+const ALLOWED_DELIVERABLE_KINDS: Record<string, readonly string[]> = {
+  background_script: ["background_script", "rollback_script", "readme"],
+  fix_script: ["fix_script", "rollback_script", "readme"],
+  copy_paste: ["paste_instructions", "readme"],
+};
+
 export const codeImplementationPackageSchema = z
   .object({
     contractVersion: z.literal(ASSISTED_CONTRACT_VERSION),
@@ -2566,6 +2647,74 @@ export const codeImplementationPackageSchema = z
     summary: z.string().min(1),
     artifacts: assistedArtifactPairSchema,
     mode: z.enum(CODE_IMPLEMENTATION_MODES),
+    outputForm: z.enum(CODE_IMPLEMENTATION_OUTPUT_FORMS),
+    runStatus: z.enum(CODE_IMPLEMENTATION_RUN_STATUSES),
+    questions: z.array(z.string().min(1).max(2_000)).default([]),
+    workOrder: z
+      .object({
+        appForm: z.enum(CODE_IMPLEMENTATION_APP_FORMS),
+        appLocation: z
+          .object({
+            kind: z.enum(CODE_IMPLEMENTATION_APP_LOCATIONS),
+            path: filePathSchema.max(4_096).optional(),
+            repoUrl: z.string().url().optional(),
+            instanceAlias: z.string().min(1).optional(),
+          })
+          .strict(),
+        target: z
+          .object({
+            application: z.string().min(1).max(200),
+            scope: z.string().regex(/^x_[a-z0-9_]+$/).max(18),
+            instanceAlias: z.string().min(1),
+          })
+          .strict(),
+        changeSource: z
+          .object({
+            kind: z.enum(CODE_IMPLEMENTATION_CHANGE_SOURCES),
+            description: z.string().min(1).max(5_000),
+          })
+          .strict(),
+        runScope: z.string().min(1).max(2_000),
+        knownDifferences: z
+          .array(
+            z
+              .object({
+                id: z.string().regex(/^KD-[0-9]{2,}$/),
+                // records: named records differ for a stated reason.
+                // undeployed_commits: the project is ahead of the instance by commits since `sinceCommit`.
+                kind: z.enum(CODE_IMPLEMENTATION_KNOWN_DIFFERENCE_KINDS).default("records"),
+                table: z.string().min(1).optional(),
+                sinceCommit: z.string().regex(/^[0-9a-f]{7,40}$/).optional(),
+                records: z.string().min(1).max(2_000),
+                reason: z.string().min(1).max(2_000),
+              })
+              .strict(),
+          )
+          .default([]),
+        confirmedAt: z.string().datetime(),
+      })
+      .strict(),
+    currentState: z
+      .object({
+        method: z.enum(CODE_IMPLEMENTATION_STATE_METHODS),
+        parity: z.enum(CODE_IMPLEMENTATION_PARITY),
+        checks: z
+          .array(
+            z
+              .object({
+                table: z.string().min(1),
+                name: z.string().min(1),
+                status: z.enum(CODE_IMPLEMENTATION_STATE_CHECKS),
+                detail: z.string().min(1).max(5_000),
+                knownDifference: z.string().regex(/^KD-[0-9]{2,}$/).optional(),
+                // Project file holding the record; required when citing an undeployed_commits difference.
+                path: filePathSchema.max(4_096).optional(),
+              })
+              .strict(),
+          )
+          .default([]),
+      })
+      .strict(),
     project: z
       .object({
         root: filePathSchema.max(4_096),
@@ -2573,7 +2722,8 @@ export const codeImplementationPackageSchema = z
         appName: z.string().min(1).max(200),
         created: z.boolean(),
       })
-      .strict(),
+      .strict()
+      .optional(),
     inputs: z
       .object({
         storyPackage: packageReferenceSchema.optional(),
@@ -2591,8 +2741,10 @@ export const codeImplementationPackageSchema = z
           .array(z.object({ path: filePathSchema.max(4_096), sha256: sha256Schema }).strict())
           .default([]),
       })
-      .strict(),
+      .strict()
+      .optional(),
     changes: z.array(codeImplementationChangeSchema).default([]),
+    deliverables: z.array(codeImplementationDeliverableSchema).default([]),
     storyCoverage: z
       .array(
         z
@@ -2623,7 +2775,8 @@ export const codeImplementationPackageSchema = z
         warningCount: z.number().int().min(0),
         excerpt: z.string().max(10_000).optional(),
       })
-      .strict(),
+      .strict()
+      .optional(),
     instanceChecks: z
       .array(
         z
@@ -2643,80 +2796,118 @@ export const codeImplementationPackageSchema = z
     const issue = (path: (string | number)[], message: string): void => {
       context.addIssue({ code: "custom", path, message });
     };
+    const completed = value.runStatus === "completed";
+    const fluent = value.outputForm === "fluent";
+    const { workOrder } = value;
 
+    // Work order and run status
+    if (value.runStatus === "stopped" && value.questions.length === 0) {
+      issue(["questions"], "A stopped run must record the questions the human needs to answer.");
+    }
+    if (value.currentState.parity === "differs" && completed) {
+      issue(["runStatus"], "The local project differs from the instance; the run must stop and ask.");
+    }
+    // Differences the human already confirmed are expected; anything else must stop the run.
+    const knownDifferences = new Map(workOrder.knownDifferences.map((entry) => [entry.id, entry]));
+    if (knownDifferences.size !== workOrder.knownDifferences.length) {
+      issue(["workOrder", "knownDifferences"], "Known difference ids must be unique.");
+    }
+    workOrder.knownDifferences.forEach((known, index) => {
+      const path = ["workOrder", "knownDifferences", index];
+      if (known.kind === "records") {
+        if (!known.table) issue([...path, "table"], `Known difference '${known.id}' must name its table.`);
+        if (known.sinceCommit) issue([...path, "sinceCommit"], `Only an undeployed_commits difference gives sinceCommit.`);
+      } else {
+        if (!known.sinceCommit) issue([...path, "sinceCommit"], `Known difference '${known.id}' must give the commit the instance was last deployed from.`);
+        if (workOrder.appForm !== "fluent" || workOrder.appLocation.kind === "instance") {
+          issue([...path, "kind"], "Undeployed commits apply only to a Fluent project held in git.");
+        }
+      }
+    });
+    let unexplained = 0;
+    let explained = 0;
+    value.currentState.checks.forEach((check, index) => {
+      const path = ["currentState", "checks", index, "knownDifference"];
+      const isDifference = check.status === "differs" || check.status === "missing";
+      if (check.knownDifference) {
+        const known = knownDifferences.get(check.knownDifference);
+        if (!known) issue(path, `Check '${check.name}' cites unknown known difference '${check.knownDifference}'.`);
+        else if (known.kind === "records" && known.table !== check.table) {
+          issue(path, `Known difference '${known.id}' covers table '${known.table}', not '${check.table}'.`);
+        } else if (known.kind === "undeployed_commits" && !check.path) {
+          issue(["currentState", "checks", index, "path"], `Check '${check.name}' cites undeployed commits, so it must give the project file that holds the record.`);
+        }
+        if (!isDifference) issue(path, `Check '${check.name}' is '${check.status}', so it needs no known difference.`);
+        explained += 1;
+      } else if (isDifference) {
+        unexplained += 1;
+      }
+    });
+    const { parity } = value.currentState;
+    if (unexplained > 0 && parity !== "differs") {
+      issue(["currentState", "parity"], `${unexplained} check(s) differ without a confirmed known difference; parity must be 'differs'.`);
+    }
+    if (parity === "matches" && explained > 0) {
+      issue(["currentState", "parity"], "Checks that differ as known differences need parity 'known_differences', not 'matches'.");
+    }
+    if (parity === "known_differences" && (explained === 0 || unexplained > 0)) {
+      issue(["currentState", "parity"], "Parity 'known_differences' needs at least one check explained by a known difference and none unexplained.");
+    }
+    if (workOrder.appForm === "classic" && fluent) {
+      issue(["outputForm"], "A classic application cannot receive Fluent output.");
+    }
+    if ((value.mode === "fix") !== (workOrder.changeSource.kind === "findings")) {
+      issue(["workOrder", "changeSource", "kind"], "Fix mode works from findings; build mode works from stories or a request.");
+    }
+    if (workOrder.appLocation.kind === "git_repo" && !workOrder.appLocation.repoUrl) {
+      issue(["workOrder", "appLocation", "repoUrl"], "A git_repo location must give repoUrl.");
+    }
+    if (workOrder.appLocation.kind === "local_project" && !workOrder.appLocation.path) {
+      issue(["workOrder", "appLocation", "path"], "A local_project location must give path.");
+    }
+
+    // Mode inputs
+    const referenceKinds = new Set(
+      [...value.changes, ...value.deliverables].flatMap((item) => item.implements.map((ref) => ref.kind)),
+    );
     if (value.mode === "build") {
-      if (!value.inputs.storyPackage || !value.inputs.technicalDesignPackage) {
-        issue(["inputs"], "Build mode requires both a storyPackage and a technicalDesignPackage.");
+      if (workOrder.changeSource.kind === "stories") {
+        if (!value.inputs.storyPackage || !value.inputs.technicalDesignPackage) {
+          issue(["inputs"], "Story-driven build mode requires both a storyPackage and a technicalDesignPackage.");
+        }
+        if (value.requestedStoryIds.length === 0) {
+          issue(["requestedStoryIds"], "Story-driven build mode requires at least one requested story id.");
+        }
+      } else if (value.requestedStoryIds.length > 0 || value.storyCoverage.length > 0) {
+        issue(["requestedStoryIds"], "A request-driven build does not request or cover stories.");
       }
       if (value.inputs.codeReview) issue(["inputs", "codeReview"], "Build mode must not take a codeReview input.");
-      if (value.requestedStoryIds.length === 0) {
-        issue(["requestedStoryIds"], "Build mode requires at least one requested story id.");
-      }
       if (value.fixResults.length > 0) issue(["fixResults"], "Build mode cannot record fixResults.");
+      if (referenceKinds.has("finding")) {
+        issue(["changes"], "Build-mode output implements stories, design decisions, or the request, not findings.");
+      }
+      if (workOrder.changeSource.kind === "stories" && referenceKinds.has("request")) {
+        issue(["changes"], "Story-driven output cites stories or design decisions, not a request.");
+      }
       const covered = new Set(value.storyCoverage.map((entry) => entry.storyId));
       for (const storyId of value.requestedStoryIds) {
-        if (!covered.has(storyId)) {
-          issue(["storyCoverage"], `Requested story '${storyId}' has no storyCoverage entry.`);
-        }
+        if (!covered.has(storyId)) issue(["storyCoverage"], `Requested story '${storyId}' has no storyCoverage entry.`);
       }
     } else {
       if (!value.inputs.codeReview) issue(["inputs", "codeReview"], "Fix mode requires a codeReview input.");
       if (value.requestedStoryIds.length > 0 || value.storyCoverage.length > 0) {
         issue(["requestedStoryIds"], "Fix mode cannot request or cover stories.");
       }
-      if (value.fixResults.length === 0) issue(["fixResults"], "Fix mode must record a fixResults entry per finding.");
-      if (value.project.created) issue(["project", "created"], "Fix mode cannot create a project.");
+      if (completed && value.fixResults.length === 0) {
+        issue(["fixResults"], "A completed fix run must record a fixResults entry per finding.");
+      }
+      if ([...referenceKinds].some((kind) => kind !== "finding")) {
+        issue(["changes"], "Fix-mode output implements approved findings only.");
+      }
+      if (value.project?.created) issue(["project", "created"], "Fix mode cannot create a project.");
     }
 
-    if (value.project.created && value.baseline.files.length > 0) {
-      issue(["baseline", "files"], "A newly created project must start from an empty baseline.");
-    }
-    if (value.baseline.root && resolve(value.baseline.root) !== resolve(value.project.root)) {
-      issue(["baseline", "root"], "The baseline snapshot was taken of a different folder than project.root.");
-    }
-    if (value.build.status === "passed" && value.build.errorCount > 0) {
-      issue(["build", "errorCount"], "A passed build cannot report errors.");
-    }
-
-    const baselinePaths = new Set(value.baseline.files.map((file) => resolve(file.path)));
-    value.baseline.files.forEach((file, index) => {
-      if (!isInsideRoot(value.project.root, file.path)) {
-        issue(["baseline", "files", index, "path"], `Baseline file '${file.path}' is outside the project root.`);
-      }
-    });
-
-    const changedPaths = new Set<string>();
-    value.changes.forEach((change, index) => {
-      const path = ["changes", index];
-      const resolved = resolve(change.path);
-      if (changedPaths.has(resolved)) issue([...path, "path"], `Duplicate change for '${change.path}'.`);
-      changedPaths.add(resolved);
-      if (!isInsideRoot(value.project.root, change.path)) {
-        issue([...path, "path"], `Change '${change.path}' is outside the project root.`);
-      }
-      if (change.action === "deleted") {
-        if (change.sha256After) issue([...path, "sha256After"], "A deleted file has no sha256After.");
-        if (isFluentDefinitionPath(change.path)) {
-          issue([...path, "action"], `Deleting Fluent definition '${change.path}' is forbidden; report it instead.`);
-        }
-      } else if (!change.sha256After) {
-        issue([...path, "sha256After"], `Change '${change.path}' must record sha256After.`);
-      }
-      const inBaseline = baselinePaths.has(resolved);
-      if (change.action === "created" && inBaseline) {
-        issue([...path, "action"], `'${change.path}' already existed in the baseline; use 'modified'.`);
-      }
-      if (change.action !== "created" && !inBaseline) {
-        issue([...path, "action"], `'${change.path}' was not in the baseline, so it cannot be ${change.action}.`);
-      }
-      if (value.mode === "build" && change.implements.some((ref) => ref.kind === "finding")) {
-        issue([...path, "implements"], "Build-mode changes implement stories or design decisions, not findings.");
-      }
-      if (value.mode === "fix" && change.implements.some((ref) => ref.kind !== "finding")) {
-        issue([...path, "implements"], "Fix-mode changes implement approved findings only.");
-      }
-    });
-
+    // Fix results bookkeeping
     const appliedIds = new Set<string>();
     const resultIds = new Set<string>();
     value.fixResults.forEach((result, index) => {
@@ -2727,19 +2918,206 @@ export const codeImplementationPackageSchema = z
       if (result.outcome === "applied") appliedIds.add(result.findingId);
     });
     const implementedFindings = new Set(
-      value.changes.flatMap((change) =>
-        change.implements.filter((ref) => ref.kind === "finding").map((ref) => ref.id),
+      [...value.changes, ...value.deliverables].flatMap((item) =>
+        item.implements.filter((ref) => ref.kind === "finding").map((ref) => ref.id),
       ),
     );
     for (const id of appliedIds) {
-      if (!implementedFindings.has(id)) {
-        issue(["fixResults"], `Finding '${id}' is marked applied but no change implements it.`);
-      }
+      if (!implementedFindings.has(id)) issue(["fixResults"], `Finding '${id}' is marked applied but no change implements it.`);
     }
     for (const id of implementedFindings) {
-      if (!appliedIds.has(id)) {
-        issue(["changes"], `A change implements finding '${id}', which is not marked applied.`);
+      if (!appliedIds.has(id)) issue(["changes"], `A change implements finding '${id}', which is not marked applied.`);
+    }
+
+    if (fluent && !completed) {
+      if (value.changes.length > 0 || value.deliverables.length > 0) {
+        issue(["changes"], "A stopped run must not record changes or deliverables.");
       }
+      return;
+    }
+    if (fluent) {
+      if (!value.project || !value.baseline || !value.build) {
+        issue(["outputForm"], "Fluent output requires project, baseline, and build.");
+        return;
+      }
+      if (value.deliverables.length > 0) issue(["deliverables"], "Fluent output records file changes, not deliverables.");
+      if (value.project.scope !== workOrder.target.scope) {
+        issue(["project", "scope"], "The project scope does not match the confirmed work order.");
+      }
+      if (value.project.created && value.baseline.files.length > 0) {
+        issue(["baseline", "files"], "A newly created project must start from an empty baseline.");
+      }
+      if (value.baseline.root && resolve(value.baseline.root) !== resolve(value.project.root)) {
+        issue(["baseline", "root"], "The baseline snapshot was taken of a different folder than project.root.");
+      }
+      if (value.build.status === "passed" && value.build.errorCount > 0) {
+        issue(["build", "errorCount"], "A passed build cannot report errors.");
+      }
+      const root = value.project.root;
+      value.baseline.files.forEach((file, index) => {
+        if (!isInsideRoot(root, file.path)) {
+          issue(["baseline", "files", index, "path"], `Baseline file '${file.path}' is outside the project root.`);
+        }
+      });
+      const baselinePaths = new Set(value.baseline.files.map((file) => resolve(file.path)));
+      const changedPaths = new Set<string>();
+      value.changes.forEach((change, index) => {
+        const path = ["changes", index];
+        const resolved = resolve(change.path);
+        if (changedPaths.has(resolved)) issue([...path, "path"], `Duplicate change for '${change.path}'.`);
+        changedPaths.add(resolved);
+        if (!isInsideRoot(root, change.path)) issue([...path, "path"], `Change '${change.path}' is outside the project root.`);
+        if (change.action === "deleted") {
+          if (change.sha256After) issue([...path, "sha256After"], "A deleted file has no sha256After.");
+          if (isFluentDefinitionPath(change.path)) {
+            issue([...path, "action"], `Deleting Fluent definition '${change.path}' is forbidden; report it instead.`);
+          }
+        } else if (!change.sha256After) {
+          issue([...path, "sha256After"], `Change '${change.path}' must record sha256After.`);
+        }
+        const inBaseline = baselinePaths.has(resolved);
+        if (change.action === "created" && inBaseline) {
+          issue([...path, "action"], `'${change.path}' already existed in the baseline; use 'modified'.`);
+        }
+        if (change.action !== "created" && !inBaseline) {
+          issue([...path, "action"], `'${change.path}' was not in the baseline, so it cannot be ${change.action}.`);
+        }
+      });
+      return;
+    }
+
+    // Copy/paste, background-script, and fix-script output
+    if (value.project || value.baseline || value.build || value.changes.length > 0) {
+      issue(["outputForm"], `${value.outputForm} output produces deliverables only; project, baseline, build, and changes are Fluent-only.`);
+    }
+    const allowed = ALLOWED_DELIVERABLE_KINDS[value.outputForm]!;
+    const ids = new Set<string>();
+    const orders = new Set<number>();
+    const primaryKind = PRIMARY_SCRIPT_KIND[value.outputForm as keyof typeof PRIMARY_SCRIPT_KIND];
+    value.deliverables.forEach((deliverable, index) => {
+      const path = ["deliverables", index];
+      if (ids.has(deliverable.id)) issue([...path, "id"], `Duplicate deliverable id '${deliverable.id}'.`);
+      ids.add(deliverable.id);
+      if (!allowed.includes(deliverable.kind)) {
+        issue([...path, "kind"], `${value.outputForm} output cannot contain a '${deliverable.kind}' deliverable.`);
+      }
+      const isScript = deliverable.kind === "background_script" || deliverable.kind === "fix_script" || deliverable.kind === "rollback_script";
+      if (isScript || deliverable.kind === "readme") {
+        if (!deliverable.path || !deliverable.sha256) issue([...path], `Deliverable '${deliverable.id}' must give its file path and sha256.`);
+      }
+      if (isScript) {
+        if (deliverable.order === undefined) issue([...path, "order"], `Script '${deliverable.id}' must give its run order.`);
+        else if (orders.has(deliverable.order)) issue([...path, "order"], `Run order ${deliverable.order} is used by more than one script.`);
+        else orders.add(deliverable.order);
+        if (!deliverable.applicationScope) issue([...path, "applicationScope"], `Script '${deliverable.id}' must name the application scope to run it in.`);
+      }
+      if (deliverable.kind !== "readme" && deliverable.implements.length === 0) {
+        issue([...path, "implements"], `Deliverable '${deliverable.id}' must cite what it implements.`);
+      }
+      if (deliverable.kind !== "readme" && deliverable.targets.length === 0) {
+        issue([...path, "targets"], `Deliverable '${deliverable.id}' must name the records it changes.`);
+      }
+      if (deliverable.kind === "rollback_script" && !deliverable.rollbackFor) {
+        issue([...path, "rollbackFor"], `Rollback '${deliverable.id}' must name the script it undoes.`);
+      }
+    });
+    const primaries = value.deliverables.filter((deliverable) => deliverable.kind === primaryKind);
+    for (const rollback of value.deliverables.filter((deliverable) => deliverable.kind === "rollback_script")) {
+      if (rollback.rollbackFor && !primaries.some((primary) => primary.id === rollback.rollbackFor)) {
+        issue(["deliverables"], `Rollback '${rollback.id}' undoes unknown script '${rollback.rollbackFor}'.`);
+      }
+    }
+    for (const primary of primaries) {
+      if (!value.deliverables.some((deliverable) => deliverable.kind === "rollback_script" && deliverable.rollbackFor === primary.id)) {
+        issue(["deliverables"], `Script '${primary.id}' has no rollback script.`);
+      }
+    }
+    if (primaries.length > 1 && !value.deliverables.some((deliverable) => deliverable.kind === "readme")) {
+      issue(["deliverables"], "More than one script requires a readme giving run order and scope.");
+    }
+    if (completed) {
+      const work = value.deliverables.filter((deliverable) => deliverable.kind !== "readme" && deliverable.kind !== "rollback_script");
+      if (work.length === 0) issue(["deliverables"], `A completed ${value.outputForm} run must produce at least one deliverable.`);
+    } else if (value.deliverables.length > 0) {
+      issue(["deliverables"], "A stopped run must not record changes or deliverables.");
     }
   });
 export type CodeImplementationPackage = z.infer<typeof codeImplementationPackageSchema>;
+export type CodeImplementationDeliverable = z.infer<typeof codeImplementationDeliverableSchema>;
+
+// A completion report is composed by toolkit code from one completed implementation
+// package and the review of exactly that work, so it can never disagree with either.
+const completionWorkItemSchema = z
+  .object({
+    ref: z.string().min(1).max(4_096),
+    kind: z.string().min(1).max(100),
+    detail: z.string().min(1).max(5_000),
+    implements: z.array(z.string().min(1).max(200)).default([]),
+  })
+  .strict();
+
+export const completionReportPackageSchema = z
+  .object({
+    contractVersion: z.literal(ASSISTED_CONTRACT_VERSION),
+    packageType: z.literal("completion_report"),
+    packageId: z.string().min(1),
+    title: z.string().min(1),
+    summary: z.string().min(1),
+    artifacts: assistedArtifactPairSchema,
+    composedAt: z.string().datetime(),
+    implementation: z
+      .object({
+        packageId: z.string().min(1),
+        jsonPath: filePathSchema.max(4_096),
+        sha256: sha256Schema,
+        mode: z.enum(CODE_IMPLEMENTATION_MODES),
+        outputForm: z.enum(CODE_IMPLEMENTATION_OUTPUT_FORMS),
+        application: z.string().min(1),
+        scope: z.string().min(1),
+        instanceAlias: z.string().min(1),
+      })
+      .strict(),
+    review: z
+      .object({
+        packageId: z.string().min(1),
+        jsonPath: filePathSchema.max(4_096),
+        sha256: sha256Schema,
+      })
+      .strict(),
+    work: z.array(completionWorkItemSchema).min(1),
+    storyCoverage: z
+      .array(z.object({ storyId: z.string().min(1), status: z.string().min(1), note: z.string().min(1) }).strict())
+      .default([]),
+    fixResults: z
+      .array(
+        z
+          .object({
+            findingId: findingIdSchema,
+            outcome: z.enum(CODE_IMPLEMENTATION_FIX_OUTCOMES),
+            resolution: z.enum(CODE_REVIEW_RESOLUTION_STATUSES).nullable(),
+            note: z.string().min(1).max(10_000),
+          })
+          .strict(),
+      )
+      .default([]),
+    build: z.object({ status: z.string().min(1), errorCount: z.number().int().min(0), warningCount: z.number().int().min(0) }).strict().nullable(),
+    findings: z
+      .array(
+        z
+          .object({
+            id: findingIdSchema,
+            title: z.string().min(1),
+            severity: z.enum(CODE_REVIEW_SEVERITIES),
+            category: z.string().min(1),
+            location: z.string().min(1),
+            hasSuggestedCode: z.boolean(),
+            decision: z.enum(CODE_REVIEW_DECISION_STATUSES),
+          })
+          .strict(),
+      )
+      .default([]),
+    severityCounts: z.record(z.enum(CODE_REVIEW_SEVERITIES), z.number().int().min(0)),
+    nextSteps: z.array(z.string().min(1)).min(1),
+  })
+  .strict();
+export type CompletionReportPackage = z.infer<typeof completionReportPackageSchema>;

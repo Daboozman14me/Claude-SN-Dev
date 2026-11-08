@@ -36,9 +36,12 @@ nothing.
 ## 3. Fix
 
 Ask for the approved findings to be applied by `assisted-delivery-code-writer`
-in **fix mode** (see `code-writer-workflow.md`). It checks drift, previews,
-and applies only approved, unchanged findings using the toolkit, then builds
-the project. You can also check drift yourself first:
+in **fix mode** (see `code-writer-workflow.md`). Intake first confirms how the
+fixes should reach the instance: Fluent project edits, copy/paste
+instructions, background scripts, or fix scripts. The writer checks drift and
+writes only approved, unchanged findings. For Fluent edits it applies them
+with the toolkit and builds the project; for the other forms you apply what
+it writes yourself. You can also check drift yourself first:
 
 ```
 npm run code-review:drift -- "<code-review-vNNN.json>" --approved-only

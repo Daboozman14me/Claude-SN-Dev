@@ -7,6 +7,7 @@ import type {
   codeReviewSourceRecordSchema,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
+import { takeIntoOption, writeIntoPackage } from "./write-into-package.js";
 
 type SourceKind = (typeof CODE_REVIEW_SOURCE_KINDS)[number];
 type SourceRecord = z.input<typeof codeReviewSourceRecordSchema>;
@@ -295,19 +296,28 @@ export function indexCodeReviewSources(inputs: string[]): CodeReviewSourceIndex 
 }
 
 if (isDirectExecution(import.meta.url, process.argv[1])) {
-  const inputs = process.argv.slice(2);
-  if (inputs.length === 0) {
-    process.stderr.write(
-      "Usage: npm run code-review:index -- <file-or-folder> [<file-or-folder> ...]\n",
-    );
-    process.exitCode = 1;
-  } else {
-    try {
-      process.stdout.write(`${JSON.stringify(indexCodeReviewSources(inputs), null, 2)}\n`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`Code review source indexing failed: ${message}\n`);
+  try {
+    const { into, rest: inputs } = takeIntoOption(process.argv.slice(2));
+    if (inputs.length === 0) {
+      process.stderr.write(
+        "Usage: npm run code-review:index -- <file-or-folder> [<file-or-folder> ...] [--into <code-review.json>]\n",
+      );
       process.exitCode = 1;
+    } else {
+      const index = indexCodeReviewSources(inputs);
+      if (into) {
+        writeIntoPackage(into, "reviewedSources", index.sources);
+        const { sources, ...summary } = index;
+        process.stdout.write(
+          `${JSON.stringify({ wroteReviewedSources: sources.length, into: resolve(into), sources: sources.map(({ id, path, kind, lineCount }) => ({ id, path, kind, lineCount })), ...summary }, null, 2)}\n`,
+        );
+      } else {
+        process.stdout.write(`${JSON.stringify(index, null, 2)}\n`);
+      }
     }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Code review source indexing failed: ${message}\n`);
+    process.exitCode = 1;
   }
 }

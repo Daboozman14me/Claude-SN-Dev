@@ -100,6 +100,35 @@ test("code writer stays inside its project, never deploys or commits, and applie
   assert.match(agent, /Output composition — avoid the per-turn output cap/);
 });
 
+test("code writer works from a confirmed work order in the output form the human chose", () => {
+  const agent = readAgent("assisted-delivery-code-writer");
+  for (const form of ["`fluent`", "`copy_paste`", "`background_script`", "`fix_script`"]) {
+    assert.match(agent, new RegExp(form), `writer missing output form ${form}`);
+  }
+  assert.match(agent, /Never assume any part of it — not even that the app is\s+Fluent/);
+  assert.match(agent, /## Research the current state first \(read-only\)/);
+  assert.match(agent, /\*\*stop and ask\*\*\s+which is authoritative/);
+  assert.match(agent, /\*\*`knownDifferences`\*\*/);
+  assert.match(agent, /`undeployed_commits`: the project is ahead of the instance/);
+  assert.match(agent, /snapshot-fluent-project\.ts" "<project-folder>" --into "<absolute-json-path>"/);
+  assert.match(agent, /never\s+stage tool output in a scratch or temp file/);
+  assert.match(agent, /`runStatus: stopped`/);
+  assert.match(agent, /\*\*Never run, paste, or execute a generated script against an instance\*\*/);
+  assert.match(agent, /var DRY_RUN = true;/);
+  assert.match(agent, /Run order: 1/);
+  assert.match(agent, /gs\.info\('\[D-01\] …'\)/);
+  assert.match(agent, /never `get\('<sys_id>'\)`/);
+  assert.match(agent, /\*\*safe to re-run\*\*/);
+  assert.match(agent, /matching \*\*undo\*\* script \(`rollback_script` with `rollbackFor`\)/);
+  assert.match(agent, /`README\.md` \(required when there is more than one script\)/);
+  assert.match(agent, /code-implementation-vNNN-scripts\//);
+  assert.match(agent, /<!-- deliverable:D-NN -->/);
+  assert.match(agent, /<!-- paste:D-NN -->/);
+  assert.match(agent, /\*\*full current code\s+beside the full new code\*\*/);
+  assert.match(agent, /`skipped_out_of_scope`/);
+  assert.match(agent, /Record\s+for rollback/);
+});
+
 test("code writer and code reviewer hold code to the same ServiceNow practices", () => {
   const writer = readAgent("assisted-delivery-code-writer");
   const reviewer = readAgent("assisted-delivery-code-review");
@@ -138,6 +167,12 @@ test("code reviewer stays read-only and leaves every decision to a human", () =>
   assert.match(agent, /never construct raw REST calls/);
   assert.match(agent, /Never request or accept\s+a password/);
   assert.match(agent, /copied \*\*verbatim\*\*/);
+  assert.match(agent, /## Post-implementation review mode/);
+  assert.match(agent, /index-code-review-sources\.ts" .*--into "<absolute-json-path>"/);
+  assert.match(agent, /Never stage indexer output in a scratch or temp file/);
+  assert.match(agent, /compose-completion-report\.ts" "<code-implementation\.json>" "<code-review\.json>"/);
+  assert.match(agent, /validate-assisted-completion-report\.ts" "<completion-report\.json>" --fresh/);
+  assert.match(agent, /never write or edit those files yourself/);
   assert.match(agent, /<!-- finding:F-NNN -->/);
   assert.match(agent, /Output composition — avoid the per-turn output cap/);
   for (const section of ["Summary", "Scope and Sources", "Findings", "Instance Checks", "Limitations"]) {
@@ -163,6 +198,15 @@ test("supervisor routes the complete assisted workflow", () => {
   assert.match(agent, /no specialist ever commits, pushes, or deploys/);
   assert.match(agent, /`assisted-delivery-code-writer` may edit source only\s+inside the project folder the user names/);
   assert.match(agent, /Never send a review whose findings are all still pending/);
+  assert.match(agent, /only\s+after \*\*intake\*\*/);
+  assert.match(agent, /never assume an answer\s+\(not even that the app is Fluent\)/);
+  assert.match(agent, /\*\*Output form\*\* — ask even for Fluent apps/);
+  assert.match(agent, /\*\*Read back the work order\*\*/);
+  assert.match(agent, /return the open questions to the caller instead of delegating/);
+  assert.match(agent, /\*\*stopped\*\* report, relay its questions/);
+  assert.match(agent, /\*\*immediately\*\* delegate\s+`assisted-delivery-code-review` in post-implementation mode/);
+  assert.match(agent, /\*\*Completion Report\*\*/);
+  assert.match(agent, /\*\*undeployed commits since `<commit>`\*\*/);
   assert.match(agent, /never require them to run\s+npm/i);
   assert.match(agent, /external systems/i);
   assert.match(agent, /designConstraints/);

@@ -166,3 +166,16 @@ test("fix applier marks a finding failed when currentCode is not the whole revie
   assert.match(readFileSync(scriptPath, "utf8"), /gs\.log\('room ' \+ gr\.name\);/);
   assert.equal(report.results.find((result) => result.findingId === "F-002")!.outcome, "applied");
 });
+
+test("tool output goes straight into an existing package, never a scratch file", async () => {
+  const { takeIntoOption, writeIntoPackage } = await import("../src/write-into-package.js");
+  const directory = mkdtempSync(join(tmpdir(), "into-package-"));
+  const packagePath = join(directory, "code-implementation-v001.json");
+  writeFileSync(packagePath, JSON.stringify({ packageType: "code_implementation", baseline: null }));
+  writeIntoPackage(packagePath, "baseline", { files: [1, 2] });
+  assert.deepEqual(JSON.parse(readFileSync(packagePath, "utf8")), { packageType: "code_implementation", baseline: { files: [1, 2] } });
+  assert.deepEqual(takeIntoOption(["C:\project", "--into", packagePath]), { into: packagePath, rest: ["C:\project"] });
+  assert.throws(() => takeIntoOption(["C:\project", "--into"]), /needs the path of an existing JSON package/);
+  writeFileSync(packagePath, "[]");
+  assert.throws(() => writeIntoPackage(packagePath, "baseline", {}), /is not a JSON package object/);
+});

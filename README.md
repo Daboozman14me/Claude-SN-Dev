@@ -16,8 +16,10 @@ project artifacts (those live separately, outside this repo).
   still undersizes on a second clean engagement; do not re-enable until
   refined). Only `research`, `code-review`, and `code-writer` may query a
   ServiceNow instance, and all three are read-only. `code-writer` is the only
-  specialist that edits source code, and only inside the project folder named
-  for each run; no agent commits, pushes, or deploys.
+  specialist that writes code, and only in the output form the human chose
+  (Fluent project edits inside the folder named for the run, copy/paste
+  instructions, or background/fix scripts in its report folder); humans apply
+  every change, and no agent commits, pushes, or deploys.
 - `assisted-delivery/` — the TypeScript toolkit the agents call into
   (`src/`, `tests/`, `package.json`). Run `npm install` then `npm test` here
   after cloning; `node_modules/` and the runtime `cache/` folder are
@@ -31,8 +33,11 @@ project artifacts (those live separately, outside this repo).
   toolkit needs, for setting it up on another machine.
 - `docs/code-review-workflow.md` — how a code review flows from report to
   human decisions to fixes to re-review.
-- `docs/code-writer-workflow.md` — how the code writer builds a Fluent app
-  from stories and a technical design, and applies approved review fixes.
+- `docs/code-writer-workflow.md` — intake, current-state research, and the
+  four output forms (Fluent edits, copy/paste, background scripts, fix
+  scripts) the code writer produces from stories, a request, or approved
+  review fixes, and the automatic review that ends every run in a Completion
+  Report.
 
 ## How this repo is wired up on this machine
 

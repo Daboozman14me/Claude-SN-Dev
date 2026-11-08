@@ -22,7 +22,9 @@
     "code-review:drift": "tsx src/check-code-review-drift.ts",
     "code-writer:snapshot": "tsx src/snapshot-fluent-project.ts",
     "code-writer:apply-fixes": "tsx src/apply-code-review-fixes.ts",
-    "validate:assisted-code-implementation": "tsx src/validate-assisted-code-implementation.ts"
+    "validate:assisted-code-implementation": "tsx src/validate-assisted-code-implementation.ts",
+    "completion:compose": "tsx src/compose-completion-report.ts",
+    "validate:assisted-completion-report": "tsx src/validate-assisted-completion-report.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
