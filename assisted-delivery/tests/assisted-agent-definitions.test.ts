@@ -112,6 +112,13 @@ test("code writer works from a confirmed work order in the output form the human
   assert.match(agent, /`undeployed_commits`: the project is ahead of the instance/);
   assert.match(agent, /snapshot-fluent-project\.ts" "<project-folder>" --into "<absolute-json-path>"/);
   assert.match(agent, /never\s+stage tool output in a scratch or temp file/);
+  assert.match(agent, /print-contract-schema\.ts" code_implementation/);
+  assert.match(agent, /render-report-html\.ts" "<absolute-json-path>"/);
+  assert.match(agent, /\*\*Write only the JSON; never hand-write the HTML\.\*\*/);
+  assert.match(agent, /\*\*Fix mode with Fluent output\*\*: skip the topic reading/);
+  assert.match(agent, /`now-sdk\s+exec` \(it runs scripts on the instance\)/);
+  assert.match(agent, /templates\/github-actions\/deploy-servicenow\.yml/);
+  assert.match(agent, /freshly cloned empty repo holding only `\.git`/);
   assert.match(agent, /`runStatus: stopped`/);
   assert.match(agent, /\*\*Never run, paste, or execute a generated script against an instance\*\*/);
   assert.match(agent, /var DRY_RUN = true;/);
@@ -124,7 +131,7 @@ test("code writer works from a confirmed work order in the output form the human
   assert.match(agent, /code-implementation-vNNN-scripts\//);
   assert.match(agent, /<!-- deliverable:D-NN -->/);
   assert.match(agent, /<!-- paste:D-NN -->/);
-  assert.match(agent, /\*\*full current code\s+beside the full new code\*\*/);
+  assert.match(agent, /\*\*full\s+current\s+code\s+beside\s+the\s+full\s+new\s+code\*\*/);
   assert.match(agent, /`skipped_out_of_scope`/);
   assert.match(agent, /Record\s+for rollback/);
 });
@@ -170,6 +177,9 @@ test("code reviewer stays read-only and leaves every decision to a human", () =>
   assert.match(agent, /## Post-implementation review mode/);
   assert.match(agent, /index-code-review-sources\.ts" .*--into "<absolute-json-path>"/);
   assert.match(agent, /Never stage indexer output in a scratch or temp file/);
+  assert.match(agent, /print-contract-schema\.ts" code_review/);
+  assert.match(agent, /render-report-html\.ts" "<absolute-json-path>"/);
+  assert.match(agent, /runs scripts \(`now-sdk exec`\)/);
   assert.match(agent, /compose-completion-report\.ts" "<code-implementation\.json>" "<code-review\.json>"/);
   assert.match(agent, /validate-assisted-completion-report\.ts" "<completion-report\.json>" --fresh/);
   assert.match(agent, /never write or edit those files yourself/);
@@ -207,6 +217,10 @@ test("supervisor routes the complete assisted workflow", () => {
   assert.match(agent, /\*\*immediately\*\* delegate\s+`assisted-delivery-code-review` in post-implementation mode/);
   assert.match(agent, /\*\*Completion Report\*\*/);
   assert.match(agent, /\*\*undeployed commits since `<commit>`\*\*/);
+  assert.match(agent, /\*\*Deploying is never done by a specialist\.\*\*/);
+  assert.match(agent, /\*\*ask the user whether the change is\s+major or minor\*\*/);
+  assert.match(agent, /\*\*confirm the target\s+instance with them\*\* — never assume the currently connected or default\s+alias/);
+  assert.match(agent, /delegate `assisted-delivery-scaffolding`\s+to register it and generate the repo-creation request/);
   assert.match(agent, /never require them to run\s+npm/i);
   assert.match(agent, /external systems/i);
   assert.match(agent, /designConstraints/);
@@ -226,6 +240,9 @@ test("scaffolding agent keeps the personal registry out-of-tree and requires exp
   assert.match(agent, /Never create a GitHub org/);
   assert.match(agent, /Never write the personal registry anywhere inside a tracked\/junctioned/);
   assert.match(agent, /Perform no ServiceNow instance reads or writes/);
+  assert.match(agent, /\*\*generate the complete request\*\*/);
+  assert.match(agent, /\*\*Leave it completely empty\*\*/);
+  assert.match(agent, /never ask for or handle\s+the values/);
 });
 
 test("test design creates traceable batch plans without execution", () => {
@@ -292,6 +309,10 @@ test("advisor consumes structured research without transcript ingestion", () => 
 
 test("story drafter requires authoritative citations and protects source", () => {
   const agent = readAgent("assisted-delivery-story-drafter");
+  assert.match(agent, /## Design first \(a hard gate\)/);
+  assert.match(agent, /"kind": "technical_design"/);
+  assert.match(agent, /"kind": "not_required", "changeSize": "minor"/);
+  assert.match(agent, /say that a technical design is needed first and stop/);
   assert.match(agent, /authoritative document/);
   assert.match(agent, /acceptance criterion/i);
   assert.match(agent, /Given\/When\/Then/);

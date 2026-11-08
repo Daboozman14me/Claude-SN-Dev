@@ -216,7 +216,7 @@ function validateHtml(value: CodeImplementationPackage, htmlPath: string): void 
     requireSections(sections, ["Questions"]);
     const questions = text(sections.get("questions")!);
     for (const question of value.questions) {
-      if (!questions.includes(text(question))) throw new Error(`Questions section does not show the question '${question}'.`);
+      if (!questions.includes(question.replace(/\s+/g, " ").trim())) throw new Error(`Questions section does not show the question '${question}'.`);
     }
     return;
   }

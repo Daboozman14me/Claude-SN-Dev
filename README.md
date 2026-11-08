@@ -37,7 +37,9 @@ project artifacts (those live separately, outside this repo).
   four output forms (Fluent edits, copy/paste, background scripts, fix
   scripts) the code writer produces from stories, a request, or approved
   review fixes, and the automatic review that ends every run in a Completion
-  Report.
+  Report; plus how a new Fluent app gets its own repo and is deployed by a
+  manually started GitHub Actions workflow
+  (`assisted-delivery/templates/github-actions/deploy-servicenow.yml`).
 
 ## How this repo is wired up on this machine
 

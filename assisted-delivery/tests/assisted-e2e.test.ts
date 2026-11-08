@@ -235,6 +235,7 @@ test("synthetic documents flow through recommendations and cited story drafts", 
     contractVersion: ASSISTED_CONTRACT_VERSION,
     packageType: "story_draft",
     packageId: "story-draft-synthetic-001",
+    designBasis: { kind: "not_required", changeSize: "minor", reason: "Synthetic end-to-end fixture.", confirmedAt: "2026-11-08T12:00:00.000Z" },
     title: "Request review story draft",
     artifacts: {
       html: join(directory, "pending-story-draft.html"),

@@ -1089,8 +1089,46 @@ export const storyDraftPackageSchema = z
     assumptions: z.array(storyDraftObservationSchema).default([]),
     questions: z.array(storyDraftObservationSchema).default([]),
     warnings: z.array(storyDraftContentSchema).default([]),
+    // Major changes are designed before stories are written; only a human-confirmed
+    // minor change (a label, a form question) may skip the design.
+    designBasis: z.discriminatedUnion("kind", [
+      z
+        .object({
+          kind: z.literal("technical_design"),
+          path: filePathSchema.max(4_096),
+          packageId: z.string().min(1),
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("not_required"),
+          changeSize: z.literal("minor"),
+          reason: z.string().min(10).max(2_000),
+          confirmedAt: z.string().datetime(),
+        })
+        .strict(),
+    ]),
   })
   .superRefine((value, context) => {
+    if (value.designBasis.kind === "technical_design") {
+      const stem = resolve(value.designBasis.path).replace(/\.(json|md)$/i, "").toLocaleLowerCase();
+      const designDocument = value.documents.find(
+        (document) => resolve(document.sourcePath).replace(/\.(json|md)$/i, "").toLocaleLowerCase() === stem,
+      );
+      if (!designDocument || !value.authoritativeDocumentIds.includes(designDocument.id)) {
+        context.addIssue({
+          code: "custom",
+          path: ["designBasis", "path"],
+          message: "The technical design the stories are based on must be one of their authoritative documents.",
+        });
+      }
+    } else if (value.epics.length > 1 || value.stories.length > 3) {
+      context.addIssue({
+        code: "custom",
+        path: ["designBasis"],
+        message: `A minor change has at most 1 epic and 3 stories (this draft has ${value.epics.length} and ${value.stories.length}); design it first.`,
+      });
+    }
     validateSourceInventory(value.sourceInventory, value.documents, context);
     validateDocumentsAndCitations(value.documents, value.citations, context);
     const documentIds = new Set(value.documents.map((document) => document.id));
@@ -2604,6 +2642,25 @@ export const codeImplementationDeliverableSchema = z
     applicationScope: z.string().min(1).max(100).optional(),
     updateSetGuidance: z.string().min(1).max(2_000).optional(),
     rollbackFor: z.string().regex(/^D-[0-9]{2,}$/).optional(),
+    // Copy/paste instructions: where to go and exactly what to set, rendered into the report.
+    paste: z
+      .object({
+        navigation: z.string().min(1).max(500),
+        record: z.string().min(1).max(500),
+        fields: z
+          .array(
+            z
+              .object({
+                field: z.string().min(1).max(200),
+                currentValue: z.string().max(100_000).optional(),
+                newValue: z.string().max(100_000),
+              })
+              .strict(),
+          )
+          .min(1),
+      })
+      .strict()
+      .optional(),
     targets: z
       .array(
         z
@@ -3019,6 +3076,12 @@ export const codeImplementationPackageSchema = z
       }
       if (deliverable.kind === "rollback_script" && !deliverable.rollbackFor) {
         issue([...path, "rollbackFor"], `Rollback '${deliverable.id}' must name the script it undoes.`);
+      }
+      if ((deliverable.kind === "paste_instructions") !== Boolean(deliverable.paste)) {
+        issue([...path, "paste"], `Only paste_instructions deliverables carry 'paste', and each one must ('${deliverable.id}').`);
+      }
+      if (deliverable.kind === "paste_instructions" && !deliverable.applicationScope) {
+        issue([...path, "applicationScope"], `Paste instructions '${deliverable.id}' must name the application scope to select.`);
       }
     });
     const primaries = value.deliverables.filter((deliverable) => deliverable.kind === primaryKind);

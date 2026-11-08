@@ -496,6 +496,8 @@ test("a copy/paste run validates and must show each target", () => {
       {
         id: "D-01",
         kind: "paste_instructions",
+        applicationScope: "x_2054821_confer_0",
+        paste: { navigation: "System Definition > Dictionary", record: "New", fields: [{ field: "column_label", newValue: "Building" }] },
         title: "Add Building field to Room",
         targets: [{ table: "sys_dictionary", name: "x_2054821_confer_0_room.building", field: "column_label" }],
         implements: [{ kind: "request", id: "request" }],
@@ -620,4 +622,29 @@ test("an undeployed-commits difference must be proven by the project's git histo
   assert.throws(() => validateAssistedCodeImplementationFile(write(make(deployed, join(project, "log-rooms.js")))), /did not change since/);
   assert.throws(() => validateAssistedCodeImplementationFile(write(make("deadbeef", rulePath))), /is not in the project's git history/);
   assert.throws(() => validateAssistedCodeImplementationFile(write(make(run("rev-parse", "HEAD"), rulePath))), /no files changed since/);
+});
+
+test("rendered implementation HTML passes the validator for every output form and a stopped run", async () => {
+  const { renderCodeImplementationHtml } = await import("../src/render-report-html.js");
+  const { codeImplementationPackageSchema } = await import("../src/assisted-contracts.js");
+  const rendered = (value: any) => renderCodeImplementationHtml(codeImplementationPackageSchema.parse(value));
+
+  const fluent = fixScenario().value;
+  assert.doesNotThrow(() => validateAssistedCodeImplementationFile(write(fluent, rendered(fluent)), { verifyChanges: true }), "fluent");
+  for (const form of ["background_script", "fix_script"] as const) {
+    const scripts = scriptScenario(form, form === "fix_script" ? 1 : 2).value;
+    assert.doesNotThrow(() => validateAssistedCodeImplementationFile(write(scripts, rendered(scripts))), form);
+  }
+
+  const stopped = fixScenario().value;
+  Object.assign(stopped, {
+    runStatus: "stopped",
+    questions: ["Is the local project authoritative for <Reservation> & its ACLs?"],
+    currentState: currentState({ method: "instance_query", parity: "differs" }),
+    changes: [],
+    fixResults: [],
+    build: undefined,
+  });
+  assert.doesNotThrow(() => validateAssistedCodeImplementationFile(write(stopped, rendered(stopped))), "stopped");
+  assert.match(rendered(stopped), /&lt;Reservation&gt; &amp; its ACLs/);
 });

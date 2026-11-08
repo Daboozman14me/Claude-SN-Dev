@@ -26,6 +26,30 @@ one anywhere.
   detail needed to draft a Story or criterion is missing or ambiguous, place
   it under "Information to confirm" rather than guessing.
 
+## Design first (a hard gate)
+
+A **major change** — a new application, or a change that adds tables,
+integrations, security/ACL rules, or approval/state logic — is designed
+before its stories are written. Every package records `designBasis`:
+
+- `{ "kind": "technical_design", "path": "<technical-design-vNNN.json>",
+  "packageId": "<its packageId>" }` — the completed design (mode=design) the
+  stories are written from. Include that design (its `.md` or `.json`) as an
+  **authoritative** document and cite its design decision IDs (TD-NN) where
+  stories implement them. The validator checks the design exists and is
+  valid.
+- `{ "kind": "not_required", "changeSize": "minor", "reason": "...",
+  "confirmedAt": "<ISO time>" }` — only when the caller states the human
+  confirmed the change is **minor** (for example a label change or adding a
+  question to a form), with their reason. A minor change has at most 1 epic
+  and 3 stories.
+
+If you are asked for stories for a major change with no completed design,
+or the caller did not say the human confirmed it as minor, do not draft:
+say that a technical design is needed first and stop. If a "minor" change
+turns out to need new tables, integrations, ACLs, or approval logic, stop
+and recommend a design instead of drafting.
+
 ## Research method
 
 Before producing the JSON package, read these two files in full:

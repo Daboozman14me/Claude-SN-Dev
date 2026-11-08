@@ -196,6 +196,8 @@ test("a copy/paste run is reviewed through its paste instructions", () => {
       {
         id: "D-01",
         kind: "paste_instructions",
+        applicationScope: "x_2054821_confer_0",
+        paste: { navigation: "System Definition > Dictionary", record: "New", fields: [{ field: "column_label", newValue: "Building" }] },
         title: "Add Building field to Room",
         targets: [{ table: "sys_dictionary", name: "x_2054821_confer_0_room.building" }],
         implements: [{ kind: "request", id: "request" }],

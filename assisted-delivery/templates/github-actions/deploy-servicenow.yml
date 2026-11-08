@@ -1,0 +1,81 @@
+# Deploys this Fluent application to a ServiceNow instance. Manual only: nothing
+# runs on push. The person running it names the target instance twice, and the
+# job confirms the instance's own name before installing.
+#
+# One-time setup per target instance (repo Settings > Environments):
+#   - create an environment named exactly as the instance (e.g. dev292961)
+#   - add environment secrets SN_USERNAME and SN_PASSWORD for an account that
+#     may install applications on that instance
+#   - optionally add required reviewers so every deploy needs an approval click
+name: Deploy to ServiceNow
+
+on:
+  workflow_dispatch:
+    inputs:
+      instance:
+        description: "Target instance name, e.g. dev292961 (no default on purpose)"
+        required: true
+        type: string
+      confirm_instance:
+        description: "Type the instance name again to confirm"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.instance }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.instance }}
+    env:
+      INSTANCE: ${{ inputs.instance }}
+      CONFIRM: ${{ inputs.confirm_instance }}
+    steps:
+      - name: Check the target instance was confirmed
+        run: |
+          if ! printf '%s' "$INSTANCE" | grep -Eq '^[a-z0-9][a-z0-9-]{1,62}$'; then
+            echo "::error::'$INSTANCE' is not a valid instance name."; exit 1
+          fi
+          if [ "$INSTANCE" != "$CONFIRM" ]; then
+            echo "::error::The two instance names do not match; nothing was deployed."; exit 1
+          fi
+          echo "Target: https://$INSTANCE.service-now.com"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # The lockfile was resolved through the corporate npm proxy, which GitHub's
+      # runners cannot reach. It mirrors public npm, and the lockfile's integrity
+      # hashes still require byte-identical packages.
+      - name: Point the lockfile at the public npm registry
+        run: sed -i 's#https://jfrog.accenturefederaldev.com/artifactory/api/npm/afs-npm-proxy/#https://registry.npmjs.org/#g' package-lock.json
+
+      - run: npm ci
+
+      - run: npx now-sdk build
+
+      - name: Authenticate to the target instance
+        env:
+          SN_USERNAME: ${{ secrets.SN_USERNAME }}
+          SN_PASSWORD: ${{ secrets.SN_PASSWORD }}
+        run: |
+          printf '%s' "$SN_PASSWORD" | npx now-sdk auth --add "https://$INSTANCE.service-now.com" \
+            --type basic --alias ci --username "$SN_USERNAME" --password-stdin
+
+      - name: Confirm the credentials reach the intended instance
+        run: |
+          actual=$(npx now-sdk query sys_properties -q "name=instance_name" -f value --auth ci --select "records[0].value" --output raw)
+          if [ "$actual" != "$INSTANCE" ]; then
+            echo "::error::Credentials reach instance '$actual', not '$INSTANCE'; nothing was deployed."; exit 1
+          fi
+          echo "Confirmed instance: $actual"
+
+      - run: npx now-sdk install --auth ci

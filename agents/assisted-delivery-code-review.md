@@ -40,10 +40,13 @@ practice in words.
 
 ## Method
 
-1. Read `~/.claude/assisted-delivery/src/assisted-contracts.ts` in full and
-   use `codeReviewPackageSchema` / `CodeReviewPackage` as the exact JSON
-   shape (constants `CODE_REVIEW_SEVERITIES`, `CODE_REVIEW_CATEGORIES`,
-   `CODE_REVIEW_CONFIDENCE_LEVELS`, `CODE_REVIEW_VERIFICATION_STATUSES`).
+1. Read the exact JSON shape of `codeReviewPackageSchema` — only that, not
+   the whole contracts file — and use its enums (`severity`, `category`,
+   `confidence`, `instanceVerification.status`) exactly:
+
+   ```
+   "$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/print-contract-schema.ts" code_review
+   ```
 2. Index the inputs before reading any code (do not `cd` into the toolkit):
 
    ```
@@ -178,7 +181,8 @@ misleading names or comments, inconsistent error messages shown to users.
 
 - Use only the `servicenow-sdk:now-sdk` skill's `now-sdk query` for instance
   reads; never construct raw REST calls and never use any command that
-  writes, installs, deploys, or changes credentials.
+  writes, installs, deploys, runs scripts (`now-sdk exec`), or changes
+  credentials.
 - Use the instance alias the user or supervisor names; otherwise the saved
   default from `now-sdk auth --list`. If the named alias does not exist,
   report that and continue without instance checks. Never request or accept
@@ -193,7 +197,9 @@ misleading names or comments, inconsistent error messages shown to users.
 - Record each check in the finding's `instanceVerification`: `confirmed` or
   `refuted` with the exact `query` and a short `result`; `not_checked` when
   it could not be checked (explain in `limitations`); `not_applicable`
-  otherwise. Summarize every check in the HTML "Instance Checks" section.
+  otherwise. The rendered report lists every recorded query under
+  "Instance Checks". Batch checks: one query per table covering every name
+  you need (`nameINa,b,c`), not one per record.
 
 ## Re-review mode
 
@@ -257,37 +263,25 @@ re-review of the same code uses the same `--request`, so it becomes the next
 version alongside the prior one.
 
 **Output composition — avoid the per-turn output cap.** Never compose the
-whole HTML report or JSON package in one tool call or one turn. Write a
-skeleton first, then add content in many separate `Edit` calls:
+whole JSON package in one tool call or one turn. `Write` a minimal valid
+skeleton (identity, `artifacts`, `target`, empty `findings: []`,
+`assumptions`, `limitations`, `warnings`), let the indexer fill
+`reviewedSources` (`--into`), then append findings a few per `Edit`. Keep
+your own messages compact — paths, counts, short summaries only.
 
-- HTML: `Write` a self-contained page (inline CSS, no external assets) with
-  every required `<h2>` section, then fill each section with its own `Edit`,
-  and add findings a few at a time.
-- JSON: `Write` a minimal valid skeleton (identity, `artifacts`, `target`,
-  `reviewedSources`, empty `findings: []`, `assumptions`, `limitations`,
-  `warnings`), then `Read` + `Edit` to append findings in small batches.
-- Keep your own messages compact — paths, counts, short summaries only.
+**Write only the JSON; never hand-write the HTML.** Put what the human
+needs in the JSON itself — `summary` (what was reviewed, the most important
+findings), each finding's fields, and `limitations` — then render the
+report from it:
 
-HTML structure (the validator checks it):
+```
+"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/render-report-html.ts" "<absolute-json-path>"
+```
 
-- `<h2>` sections in this order: `Summary`, `Scope and Sources`, `Findings`,
-  `Instance Checks`, `Limitations`.
-- Summary: what was reviewed, counts by severity and category, the most
-  important findings, and a note that decisions are recorded later in the
-  JSON during a walk-through.
-- Scope and Sources: a table listing every reviewed source's `id`, file
-  name, kind, and line count, plus XML records reviewed.
-- Findings, grouped by severity (critical first). Before each finding put
-  `<!-- finding:F-NNN -->` on its own line, then a block that visibly shows:
-  `F-NNN — <title>`; `Severity: <severity> · Category: <category> ·
-  Confidence: <confidence>`; `Location: <file name>:<startLine>` (or
-  `:<startLine>-<endLine>` for multiple lines) plus the record name/table
-  when applicable; the current and suggested code side by side in
-  `<pre><code>` blocks with all `<`, `>`, `&` HTML-escaped; the rationale;
-  the practice reference; and the instance check result. Show "Decision:
-  pending".
-- Instance Checks: every query run and its outcome, or why none were run.
-- Limitations: skipped files, unchecked facts, anything out of scope.
+The rendered report has `Summary`, `Scope and Sources`, `Findings` (grouped
+by severity, a `<!-- finding:F-NNN -->` block each, current and suggested
+code side by side), `Instance Checks`, and `Limitations`. If validation
+fails, fix the JSON and render again.
 
 Validate until it passes:
 

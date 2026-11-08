@@ -149,3 +149,40 @@ hand, run it from `~/.claude/assisted-delivery`:
   — `--verify-changes` is for Fluent output only.
 - `npm run completion:compose -- <code-implementation.json> <code-review.json>`
 - `npm run validate:assisted-completion-report -- <completion-report.json> [--fresh]`
+
+## New Fluent applications: own repo, deploy by GitHub Actions
+
+Installing from this machine (`now-sdk install`) is blocked by the corporate
+proxy, so every new Fluent application gets its own GitHub repo and is
+deployed from GitHub's servers instead.
+
+1. **Repo request.** At intake, `assisted-delivery-scaffolding` generates a
+   checklist for you:
+   - the owner and exact repo name;
+   - visibility **Private**;
+   - **completely empty**, with no README, `.gitignore` or license.
+
+   You create the repo and send back its URL. Scaffolding verifies it and
+   clones it.
+2. **First build run.** The writer creates the Fluent project inside that
+   empty clone. It adds `.github/workflows/deploy-servicenow.yml` from the
+   toolkit template. You review the run, then commit and push.
+3. **Deploying (later, only when you decide).** Deploying means installing
+   the app on a ServiceNow instance.
+   - The main session first confirms which instance you mean. It never
+     assumes the one it happens to be connected to.
+   - You start **Actions > Deploy to ServiceNow > Run workflow** in GitHub
+     and type the instance name twice.
+   - The workflow refuses mismatched names. It checks the instance's own
+     `instance_name` before installing, and it never runs on push.
+   - One-time setup per instance (repo Settings > Environments): an
+     environment named exactly as the instance, with secrets `SN_USERNAME`
+     and `SN_PASSWORD`. You can add required reviewers for an extra approval
+     click. You add those secrets yourself.
+   - The project's lockfile points at the corporate npm proxy, which GitHub
+     can't reach. The workflow rewrites those URLs to public npm, and the
+     lockfile's integrity hashes still guarantee identical packages.
+
+`npm run report:render -- <json>` renders the HTML for an implementation or
+review package, and `npm run contract:schema -- <package type>` prints one
+package's JSON shape. The agents use both.

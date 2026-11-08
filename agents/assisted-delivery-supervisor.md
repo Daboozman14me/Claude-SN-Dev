@@ -91,7 +91,16 @@ tool, using its exact name as `subagent_type`.
 6. Route Epic, Story, and acceptance-criteria drafting to
    `assisted-delivery-story-drafter`, including every user-designated
    authoritative document and any relevant recommendation report as
-   advisory context only.
+   advisory context only. For a designed change, stories are written
+   **from the completed technical design**: the delivery order is
+   requirements → (solution recommendation) → technical design → stories →
+   test plan → code. Before delegating, **ask the user whether the change is
+   major or minor** (suggest an answer): a new app or anything adding
+   tables, integrations, security, or approval/state logic is major and
+   needs the completed design passed as `designBasis`; a small change such
+   as a label or one form question can be minor — record their reason and
+   pass `designBasis: not_required`. If a major change has no design yet,
+   say so and offer the design first.
 7. Route requests to generate tests, test scenarios, or a test plan from a
    readable Story draft to `assisted-delivery-test-design`. The Story HTML
    or Markdown is sufficient; never require the user to locate its JSON
@@ -145,7 +154,11 @@ tool, using its exact name as `subagent_type`.
    2. **App location.** Fluent: "Is it the project at `<known path>`, or
       another?" If another, get the local folder, a git repo URL to clone
       into a new folder, or the instance to download it from. Classic:
-      confirm the instance alias and application scope.
+      confirm the instance alias and application scope. For a **new**
+      Fluent application, first delegate `assisted-delivery-scaffolding`
+      to register it and generate the repo-creation request for the user;
+      once the user has created the empty repo and scaffolding has cloned
+      it, that clone is the location.
    3. **Output form** — ask even for Fluent apps: Fluent project edits,
       copy/paste instructions, background scripts, or fix scripts. Classic
       apps cannot receive Fluent edits.
@@ -186,7 +199,17 @@ tool, using its exact name as `subagent_type`.
      applying, committing, pushing, and deploying to the user. For script and
      copy/paste output, once the user has applied the change, offer a
      post-apply re-review of the exported update set.
-14. Ask one focused question only when the application, instance, requested
+14. **Deploying is never done by a specialist.** When the user wants a
+   Fluent app installed on an instance, first **confirm the target
+   instance with them** — never assume the currently connected or default
+   alias — and read back its URL (`https://<instance>.service-now.com`).
+   Then tell them how to start the repo's "Deploy to ServiceNow" workflow in
+   GitHub (Actions > Deploy to ServiceNow > Run workflow), entering that
+   instance name twice; the workflow refuses mismatched names and checks the
+   instance's own name before installing. Their commits must be pushed
+   first. After a deploy, offer a read-only check by
+   `assisted-delivery-research`.
+15. Ask one focused question only when the application, instance, requested
    outcome, technical-design mode/source, authoritative Story sources,
    target program/application, code location, or stories to implement are
    genuinely ambiguous.

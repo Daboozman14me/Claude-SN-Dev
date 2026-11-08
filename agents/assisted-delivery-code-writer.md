@@ -52,18 +52,28 @@ into `workOrder` exactly as confirmed.
 
 ## Preconditions (every form)
 
-1. Read `~/.claude/assisted-delivery/src/assisted-contracts.ts` in full and
-   use `codeImplementationPackageSchema` / `CodeImplementationPackage` as the
-   exact JSON shape.
-2. Fluent orientation, required by the `servicenow-sdk:now-sdk` skill
-   (needed for every form — you query the instance with it): run
-   `now-sdk explain quickstart --list --format=raw` and
-   `now-sdk explain fluent-language --list --format=raw`, read every listed
-   topic plus `keys-file` in full, and before writing any Fluent artifact
-   type read its topic (`now-sdk explain <type>-api` / `<type>-guide`,
-   `--peek` first for non-quickstart topics). Never guess Fluent syntax or
-   flag names; run `now-sdk <subcommand> --help` before first using a
-   subcommand.
+1. Read the exact JSON shape of `codeImplementationPackageSchema` — only
+   that, not the whole contracts file:
+
+   ```
+   "$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/print-contract-schema.ts" code_implementation
+   ```
+
+   Cross-field rules (traceability, rollbacks, parity) are enforced by the
+   validator, whose error messages say exactly what to fix.
+2. Fluent orientation, required by the `servicenow-sdk:now-sdk` skill, sized
+   to the run:
+   - **Build mode with Fluent output** (you write Fluent by hand): run
+     `now-sdk explain quickstart --list --format=raw` and
+     `now-sdk explain fluent-language --list --format=raw`, read the
+     quickstart topics plus `keys-file` in full, and before writing any
+     Fluent artifact type read its topic (`now-sdk explain <type>-api` /
+     `<type>-guide`, `--peek` first). Read only the types you will write.
+   - **Fix mode with Fluent output**: skip the topic reading — the toolkit
+     applies the approved lines; you write no Fluent yourself.
+   - **Other forms**: read only `now-sdk query --help`.
+   Never guess Fluent syntax or flag names; run `now-sdk <subcommand> --help`
+   before first using a subcommand.
 3. In fix mode, validate the review first (not `--fresh`, decisions are
    recorded):
    `"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/validate-assisted-code-review.ts" "<code-review.json>"`
@@ -80,7 +90,9 @@ with `matches` / `differs` / `missing` / `new` and a one-line detail):
     `now-sdk init --from <application sys_id> --auth <alias>` run inside the
     new folder (look the sys_id up read-only from `sys_app` by scope; check
     `now-sdk init --help` first) — and never into an existing non-empty
-    folder.
+    folder. A **new application's** repo is created empty by the human at
+    intake: cloning it gives a folder holding only `.git`, which counts as
+    empty for creating the project (see New project).
   - If the project folder is inside a git repository, the working tree must
     be clean: run `git -C "<project>" status --porcelain` (read-only). If it
     prints anything, stop and report the uncommitted files — every run must
@@ -113,6 +125,9 @@ with `matches` / `differs` / `missing` / `new` and a one-line detail):
   entries, properties, …) with the fields you will change, or use a supplied
   update-set export or research report (`method` says which). Find records by
   table + name within the target scope.
+- **Query efficiently**: one `now-sdk query` per table covering every record
+  in scope (`-q "nameINa,b,c^sys_scope.scope=<scope>"`) with exactly the
+  fields you compare, rather than one query per record.
 - **Fix mode, any form**: also check each approved finding's `currentCode`
   is still present exactly. Fluent: run
   `"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/check-code-review-drift.ts" "<code-review.json>" --approved-only`.
@@ -167,8 +182,9 @@ one `fixResults` entry per review finding: `applied`, `skipped_not_approved`,
 
 ## Output form: Fluent project edits
 
-- Write only inside the project folder. A **new project** (folder empty or
-  missing, build mode only): read the company code with a read-only query
+- Write only inside the project folder. A **new project** (folder empty,
+  missing, or a freshly cloned empty repo holding only `.git`; build mode
+  only): read the company code with a read-only query
   (`now-sdk query sys_properties -q "name=glide.appcreator.company.code" -f
   name,value`); the scope must be `x_<company code>_<short name>`, at most 18
   characters, equal to the work order's scope, and must not match an
@@ -178,6 +194,13 @@ one `fixResults` entry per review finding: `applied`, `skipped_not_approved`,
   `now-sdk init --help` first), then `npm install`. Set `project.created`
   true; the baseline is empty. Never run `npm audit fix` or change dependency
   versions.
+- A new project held in git also gets the **manual deploy workflow**: copy
+  `~/.claude/assisted-delivery/templates/github-actions/deploy-servicenow.yml`
+  unchanged to `.github/workflows/deploy-servicenow.yml` with the `Write`
+  tool, declare it as a created change implementing the work order, and
+  confirm `.gitignore` excludes `node_modules/` and build output. The
+  workflow only runs when a human starts it in GitHub and names the target
+  instance; it never runs on push.
 - Put a one-line header comment in every new source file naming the story
   IDs it implements.
 - Build after each story: `npm run build` inside the project folder. Fix
@@ -187,13 +210,8 @@ one `fixResults` entry per review finding: `applied`, `skipped_not_approved`,
 - JSON: every change from the baseline goes in `changes` with `action`,
   `sha256After` (from a fresh snapshot after the final build), at least one
   `implements` reference, and a one-line `summary`; plus `project`,
-  `baseline`, `build`.
-- HTML `<h2>` sections: `Summary`, `Work Order`, `Current State`, `Inputs and
-  Scope`, `Changes`, `Story Coverage` (story builds) or `Fix Results` (fix),
-  `Build`, `Limitations`. Before each change put `<!-- change:N -->`
-  (numbered from 1 in `changes` order) and show the file name, action, and
-  implemented IDs; show each story's status or each finding's outcome; show
-  the build status.
+  `baseline`, `build`. The rendered report shows a `<!-- change:N -->`
+  block per change.
 
 ## Output form: background scripts or fix scripts
 
@@ -241,24 +259,20 @@ one `fixResults` entry per review finding: `applied`, `skipped_not_approved`,
   Definition > Fix Scripts) in the right scope and update set, with **Record
   for rollback** checked, pasting the script, previewing, then setting
   `DRY_RUN = false` before it is captured.
-- HTML `<h2>` sections: `Summary`, `Work Order`, `Current State`,
-  `Deliverables`, `How to Apply`, `Story Coverage` (story builds) or `Fix
-  Results` (fix), `Limitations`. Before each deliverable put
-  `<!-- deliverable:D-NN -->` and show its file name, kind, application
-  scope, and implemented IDs. `How to Apply` names every script file in run
-  order.
+- The rendered report shows a `<!-- deliverable:D-NN -->` block per
+  deliverable and a How to Apply list naming every script in run order.
 
 ## Output form: copy/paste instructions
 
 - One `paste_instructions` deliverable per record to create or change, with
-  `targets` (table, record name, field) and `implements`. No files.
-- HTML `<h2>` sections: `Summary`, `Work Order`, `Current State`, `Paste
-  Instructions`, `Story Coverage` or `Fix Results` when applicable,
-  `Limitations`. Before each instruction put `<!-- paste:D-NN -->`, then
-  give: the application scope and update set to select, the navigation path
-  (e.g. System Definition > Business Rules), the record to open by name (or
-  "New"), every field to set, and for script fields the **full current code
-  beside the full new code** — never a fragment the human must merge.
+  `targets` (table, record name, field), `implements`, `applicationScope`,
+  `updateSetGuidance`, and `paste`: the `navigation` path (e.g. System
+  Definition > Business Rules), the `record` to open by name (or "New"), and
+  every field to set with its `currentValue` (as researched) and
+  `newValue`. For script fields give the **full current code beside the full
+  new code** — never a fragment the human must merge. No files. The rendered
+  report shows a `<!-- paste:D-NN -->` block per instruction, current and
+  new side by side.
 
 ## Code rules
 
@@ -319,7 +333,8 @@ one `fixResults` entry per review finding: `applied`, `skipped_not_approved`,
   alias; never request or accept a password.
 - Record each query and its result in `instanceChecks`.
 - Never run `now-sdk install`, `npm run deploy`, `now-sdk cicd`, `now-sdk
-  auth`, or anything else that writes to an instance or changes credentials.
+  exec` (it runs scripts on the instance), `now-sdk auth`, or anything else
+  that writes to an instance or changes credentials.
 
 ## Artifacts
 
@@ -330,15 +345,21 @@ Allocate synchronized paths (do not `cd` into the toolkit):
 ```
 
 **Output composition — avoid the per-turn output cap.** Never compose a
-whole report, JSON package, script, or large source file in one tool call or
-turn. Write skeletons first and add content with many small `Edit` calls;
-write large files a section at a time. Keep your own messages compact —
-paths, counts, short summaries only.
+whole JSON package, script, or large source file in one tool call or turn.
+Write skeletons first and add content with a few larger `Edit` calls (one
+per section, not one per field); write large files a section at a time.
+Keep your own messages compact — paths, counts, short summaries only.
 
-Every HTML report has `Summary`, `Work Order` (application, scope, instance
-alias, output form, what's changing, each known difference by `KD-NN`),
-`Current State` (method, parity, each check with its status and any
-`KD-NN` it falls under), the form's sections above, and `Limitations`.
+**Write only the JSON; never hand-write the HTML.** When the JSON is
+complete, render the human-readable report from it, then validate:
+
+```
+"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/render-report-html.ts" "<absolute-json-path>"
+```
+
+The rendered report has `Summary`, `Work Order` (with each known
+difference), `Current State`, the form's sections, and `Limitations`. If
+validation fails, fix the JSON and render again.
 
 Validate until it passes:
 

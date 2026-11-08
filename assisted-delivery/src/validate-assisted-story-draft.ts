@@ -2,9 +2,11 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import {
   storyDraftPackageSchema,
+  technicalDesignPackageSchema,
   type StoryDraftPackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
+import { validateAssistedTechnicalDesignFile } from "./validate-assisted-technical-design.js";
 
 export function validateAssistedStoryDraftJson(json: string): void {
   storyDraftPackageSchema.parse(JSON.parse(json) as unknown);
@@ -41,7 +43,31 @@ export function validateAssistedStoryDraftFile(path: string): string {
     JSON.parse(readFileSync(absolutePath, "utf8")) as unknown,
   );
   validateArtifactPair(value, absolutePath);
+  validateDesignBasis(value);
   return absolutePath;
+}
+
+// Stories for a designed change must rest on a completed, valid design (mode=design).
+function validateDesignBasis(value: StoryDraftPackage): void {
+  if (value.designBasis.kind !== "technical_design") return;
+  const designPath = resolve(value.designBasis.path);
+  if (!existsSync(designPath)) {
+    throw new Error(`The technical design the stories are based on does not exist: '${designPath}'.`);
+  }
+  try {
+    validateAssistedTechnicalDesignFile(designPath);
+  } catch (error) {
+    throw new Error(
+      `The technical design the stories are based on is not a valid, completed design: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const design = technicalDesignPackageSchema.parse(JSON.parse(readFileSync(designPath, "utf8")) as unknown);
+  if (design.mode !== "design") {
+    throw new Error("Stories must be based on a technical design (mode=design), not a design evaluation.");
+  }
+  if (design.packageId !== value.designBasis.packageId) {
+    throw new Error(`designBasis.packageId '${value.designBasis.packageId}' does not match the design's '${design.packageId}'.`);
+  }
 }
 
 if (isDirectExecution(import.meta.url, process.argv[1])) {

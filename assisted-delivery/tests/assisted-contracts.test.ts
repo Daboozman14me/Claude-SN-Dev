@@ -90,6 +90,7 @@ function storyPackage(): Record<string, unknown> {
     contractVersion: ASSISTED_CONTRACT_VERSION,
     packageType: "story_draft",
     packageId: "stories-001",
+    designBasis: { kind: "not_required", changeSize: "minor", reason: "Fixture: a small review-flag change.", confirmedAt: "2026-11-08T12:00:00.000Z" },
     title: "Request review story draft",
     artifacts: {
       html: "C:\\artifacts\\story-draft-v001.html",
@@ -541,4 +542,25 @@ test("requirements extraction rejects splitGroupId siblings citing different doc
     () => requirementsExtractionPackageSchema.parse(crossDocumentSplit),
     /splitGroupId 'split-1' members must cite the same source document/,
   );
+});
+
+test("stories for a major change rest on a design; only a confirmed minor change may skip it", () => {
+  const designed: any = storyPackage();
+  designed.designBasis = { kind: "technical_design", path: "C:\\inputs\\technical-design-v001.json", packageId: "design-001" };
+  assert.throws(() => storyDraftPackageSchema.parse(designed), /must be one of their authoritative documents/);
+
+  // Make the stories' authoritative document the design itself (its .md beside the .json).
+  const fromDesign: any = JSON.parse(
+    JSON.stringify(designed).replaceAll("requirements.txt", "technical-design-v001.md"),
+  );
+  assert.doesNotThrow(() => storyDraftPackageSchema.parse(fromDesign));
+
+  const tooBig: any = storyPackage();
+  const story = tooBig.stories[0];
+  tooBig.stories = [1, 2, 3, 4].map((n) => ({ ...structuredClone(story), id: `${story.id}${n}`, dependencies: [] }));
+  assert.throws(() => storyDraftPackageSchema.parse(tooBig), /A minor change has at most 1 epic and 3 stories|design it first/);
+
+  const unconfirmed: any = storyPackage();
+  delete unconfirmed.designBasis;
+  assert.throws(() => storyDraftPackageSchema.parse(unconfirmed), /designBasis/);
 });

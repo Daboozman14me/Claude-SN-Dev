@@ -119,9 +119,33 @@ user to run it themselves.
    human-first/agent-attempt/specific-fallback creation flow as program
    registration, naming it `<ORG>/<application>` by convention (confirm the
    exact name with the human before using it).
+   - **New Fluent (now-sdk) application in git**: its code lives in its own
+     repo and is deployed later by a manually started GitHub Actions
+     workflow. When the human creates the repo themselves (or `gh` is
+     unavailable), **generate the complete request** for them — never just
+     "please create a repo". Give, as a short numbered checklist they can
+     follow in the GitHub web page:
+     1. Owner and exact repository name (kebab-case, e.g.
+        `new-conf-room-booking`).
+     2. Visibility **Private**.
+     3. **Leave it completely empty**: do not add a README, `.gitignore`, or
+        license (the project's own files are added by the first commit; a
+        pre-filled repo makes that first push collide).
+     4. After creating it, copy the HTTPS URL and send it back.
+     5. Not needed until the first deploy, but worth knowing: under
+        Settings > Environments, one environment per target instance (named
+        exactly as the instance, e.g. `dev292961`) holding secrets
+        `SN_USERNAME` and `SN_PASSWORD`, optionally with required reviewers.
+        The human adds these secrets themselves — never ask for or handle
+        the values.
+     When the URL comes back, verify it with `git ls-remote <url>` (an
+     empty repo answers with no refs — that is expected), then continue.
 5. Clone (git) or confirm access to (SharePoint/local) the new project at
    `~/ServiceNow-Assisted/Programs/<alias>/<application>/`
-   by default, narrating each step.
+   by default, narrating each step. For a new Fluent application, the clone
+   of the empty repo (a folder holding only `.git`) is where
+   `assisted-delivery-code-writer` later creates the project — report that
+   exact folder so it goes into the writer's work order.
 6. Ask whether this application corresponds to a known ServiceNow instance.
    If so, record it as `serviceNowInstance: {alias, url?}` in the project
    entry — **the alias name only (and optionally the instance URL), never a

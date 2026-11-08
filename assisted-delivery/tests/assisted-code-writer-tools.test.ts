@@ -179,3 +179,19 @@ test("tool output goes straight into an existing package, never a scratch file",
   writeFileSync(packagePath, "[]");
   assert.throws(() => writeIntoPackage(packagePath, "baseline", {}), /is not a JSON package object/);
 });
+
+test("the deploy workflow template only runs manually and makes the human confirm the instance", () => {
+  const workflow = readFileSync(join(import.meta.dirname, "..", "templates", "github-actions", "deploy-servicenow.yml"), "utf8");
+  const triggers = workflow.slice(workflow.indexOf("\non:"), workflow.indexOf("\npermissions:"));
+  assert.match(triggers, /workflow_dispatch:/);
+  assert.doesNotMatch(triggers, /\b(push|pull_request|schedule|workflow_run):/);
+  assert.doesNotMatch(triggers, /default:/, "the target instance must never have a default");
+  assert.match(workflow, /confirm_instance:/);
+  assert.match(workflow, /"\$INSTANCE" != "\$CONFIRM"/);
+  assert.match(workflow, /environment: \$\{\{ inputs\.instance \}\}/);
+  assert.match(workflow, /name=instance_name/);
+  assert.match(workflow, /--password-stdin/);
+  assert.doesNotMatch(workflow.split("\n").filter((line) => /^\s*run:|^\s{10}\S/.test(line)).join("\n"), /\$\{\{\s*inputs\./, "inputs reach scripts only through env, never inline");
+  assert.ok(workflow.indexOf("name=instance_name") < workflow.indexOf("now-sdk install"), "the instance is confirmed before installing");
+});
+
