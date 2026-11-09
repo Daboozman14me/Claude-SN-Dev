@@ -1,11 +1,16 @@
-# Deploys this Fluent application to a ServiceNow instance. Manual only: nothing
-# runs on push. The person running it names the target instance twice, and the
-# job confirms the instance's own name before installing.
+# Deploys this Fluent application to a ServiceNow DEV or TEST instance. Manual
+# only: nothing runs on push. The person running it names the target instance
+# twice, and the job confirms the instance's own name before installing.
+#
+# Not for production: production goes through ServiceNow's application
+# promotion (App Repo / guided install), per the Now SDK CI guidance.
 #
 # One-time setup per target instance (repo Settings > Environments):
 #   - create an environment named exactly as the instance (e.g. dev292961)
-#   - add environment secrets SN_USERNAME and SN_PASSWORD for an account that
-#     may install applications on that instance
+#   - add environment secrets SN_USERNAME and SN_PASSWORD for a human-type
+#     account with the admin role (or, to use OAuth client credentials, set
+#     environment variable SN_AUTH_TYPE=oauth and secrets SN_OAUTH_CLIENT_ID /
+#     SN_OAUTH_CLIENT_SECRET; see `now-sdk explain ci-integration`)
 #   - optionally add required reviewers so every deploy needs an approval click
 name: Deploy to ServiceNow
 
@@ -60,22 +65,35 @@ jobs:
 
       - run: npm ci
 
-      - run: npx now-sdk build
+      # Fails if keys.ts is not committed and current; otherwise an install could
+      # create duplicate records instead of updating existing ones.
+      - run: npx now-sdk build --frozenKeys
 
-      - name: Authenticate to the target instance
+      - name: Confirm the credentials reach the intended instance
         env:
           SN_USERNAME: ${{ secrets.SN_USERNAME }}
           SN_PASSWORD: ${{ secrets.SN_PASSWORD }}
+          SN_AUTH_TYPE: ${{ vars.SN_AUTH_TYPE }}
         run: |
-          printf '%s' "$SN_PASSWORD" | npx now-sdk auth --add "https://$INSTANCE.service-now.com" \
-            --type basic --alias ci --username "$SN_USERNAME" --password-stdin
-
-      - name: Confirm the credentials reach the intended instance
-        run: |
-          actual=$(npx now-sdk query sys_properties -q "name=instance_name" -f value --auth ci --select "records[0].value" --output raw)
+          if [ "$SN_AUTH_TYPE" = "oauth" ]; then
+            echo "OAuth configured; the install step authenticates and the URL below is the only target."
+            exit 0
+          fi
+          actual=$(curl --silent --show-error --fail --user "$SN_USERNAME:$SN_PASSWORD" \
+            -H "Accept: application/json" \
+            "https://$INSTANCE.service-now.com/api/now/table/sys_properties?sysparm_query=name%3Dinstance_name&sysparm_fields=value&sysparm_limit=1" \
+            | jq -r '.result[0].value // empty')
           if [ "$actual" != "$INSTANCE" ]; then
             echo "::error::Credentials reach instance '$actual', not '$INSTANCE'; nothing was deployed."; exit 1
           fi
           echo "Confirmed instance: $actual"
 
-      - run: npx now-sdk install --auth ci
+      - name: Install
+        env:
+          SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL
+          SN_SDK_AUTH_TYPE: ${{ vars.SN_AUTH_TYPE || 'basic' }}
+          SN_SDK_USER: ${{ secrets.SN_USERNAME }}
+          SN_SDK_USER_PWD: ${{ secrets.SN_PASSWORD }}
+          SN_SDK_OAUTH_CLIENT_ID: ${{ secrets.SN_OAUTH_CLIENT_ID }}
+          SN_SDK_OAUTH_CLIENT_SECRET: ${{ secrets.SN_OAUTH_CLIENT_SECRET }}
+        run: SN_SDK_INSTANCE_URL="https://$INSTANCE.service-now.com" npx now-sdk install

@@ -189,9 +189,15 @@ test("the deploy workflow template only runs manually and makes the human confir
   assert.match(workflow, /confirm_instance:/);
   assert.match(workflow, /"\$INSTANCE" != "\$CONFIRM"/);
   assert.match(workflow, /environment: \$\{\{ inputs\.instance \}\}/);
-  assert.match(workflow, /name=instance_name/);
-  assert.match(workflow, /--password-stdin/);
-  assert.doesNotMatch(workflow.split("\n").filter((line) => /^\s*run:|^\s{10}\S/.test(line)).join("\n"), /\$\{\{\s*inputs\./, "inputs reach scripts only through env, never inline");
-  assert.ok(workflow.indexOf("name=instance_name") < workflow.indexOf("now-sdk install"), "the instance is confirmed before installing");
+  assert.match(workflow, /name%3Dinstance_name/);
+  assert.match(workflow, /SN_SDK_NODE_ENV: SN_SDK_CI_INSTALL/);
+  assert.doesNotMatch(workflow, /now-sdk auth/, "CI authenticates through the SDK's environment variables, not the keychain");
+  const inputUses = [...workflow.matchAll(/\$\{\{\s*inputs\.(\w+)\s*\}\}/g)].map((match) => workflow.slice(0, match.index).split("\n").pop()!.trim());
+  for (const line of inputUses) {
+    assert.match(line, /^(INSTANCE:|CONFIRM:|environment:|group: deploy-)/, `inputs are used only via validated env or job routing, found: ${line}`);
+  }
+  const install = workflow.indexOf("npx now-sdk install");
+  assert.ok(workflow.indexOf("name%3Dinstance_name") < install, "the instance is confirmed before installing");
+  assert.ok(workflow.indexOf("now-sdk build --frozenKeys") < install, "keys.ts is checked before installing");
 });
 

@@ -207,7 +207,9 @@ implementation detail — never ask the user to run it themselves.
 
 ## Hard boundaries
 
-- Write only the allocated Markdown and JSON artifacts.
+- Write only the allocated Markdown and JSON artifacts. No scratch, preview,
+  or temp files anywhere (including `C:\tmp`); inspect inputs with `Read`,
+  `Grep`, or a one-line command whose output you read directly.
 - Never edit toolkit source, agent/skill definitions, configuration, tests,
   package files, or any file supplied by the user.
 - If the validator or a toolkit script fails because of a toolkit defect,
