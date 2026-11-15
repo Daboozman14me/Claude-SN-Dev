@@ -54,6 +54,9 @@ const WALKED_EXTENSIONS = new Set([
   ".html",
   ".htm",
   ".css",
+  ".yml",
+  ".yaml",
+  ".md",
 ]);
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const CONTAINER_TAGS = new Set(["sys_update_xml", "sys_remote_update_set"]);
@@ -252,7 +255,11 @@ function collectFiles(
       skipped.push({ path: full, reason: "lock file" });
       return false;
     }
-    return WALKED_EXTENSIONS.has(extname(full).toLocaleLowerCase());
+    if (!WALKED_EXTENSIONS.has(extname(full).toLocaleLowerCase())) {
+      skipped.push({ path: full, reason: `file type '${extname(full) || "(none)"}' is not reviewed` });
+      return false;
+    }
+    return true;
   });
 }
 

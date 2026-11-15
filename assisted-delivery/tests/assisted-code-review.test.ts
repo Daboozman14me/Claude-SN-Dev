@@ -194,6 +194,23 @@ test("source indexer classifies, fingerprints and skips non-source files", () =>
   assert.deepEqual(index.fluentProjects.map((project) => project.scope), ["x_app"]);
 });
 
+test("source indexer reviews workflow and doc files and reports every other file it skips", () => {
+  const root = buildIndexFixture();
+  mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+  writeFileSync(join(root, ".github", "workflows", "deploy.yml"), "name: Deploy\non:\n  workflow_dispatch:\n");
+  mkdirSync(join(root, "docs"), { recursive: true });
+  writeFileSync(join(root, "docs", "checklist.md"), "# Checklist\n");
+  writeFileSync(join(root, "logo.png"), "png");
+  const index = indexCodeReviewSources([root]);
+  const names = index.sources.map((source) => basename(source.path));
+  assert.ok(names.includes("deploy.yml"), "workflow files are reviewed");
+  assert.ok(names.includes("checklist.md"), "docs are reviewed");
+  assert.ok(
+    index.skipped.some((entry) => entry.path.endsWith("logo.png") && /file type '\.png' is not reviewed/.test(entry.reason)),
+    "unreviewed file types are listed, never silently dropped",
+  );
+});
+
 test("source indexer locates update-set records and their script lines", () => {
   const root = buildIndexFixture();
   const index = indexCodeReviewSources([join(root, "update-set.xml"), join(root, "escaped-update-set.xml")]);

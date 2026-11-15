@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  backlogPackageSchema,
   codeImplementationPackageSchema,
   codeReviewPackageSchema,
   completionReportPackageSchema,
@@ -9,6 +10,7 @@ import { isDirectExecution } from "./direct-execution.js";
 // Lets an agent read the one package shape it writes instead of the whole contracts file.
 // Cross-field rules live in superRefine and are enforced by the validators, not shown here.
 const SCHEMAS: Record<string, z.ZodType> = {
+  backlog: backlogPackageSchema,
   code_implementation: codeImplementationPackageSchema,
   code_review: codeReviewPackageSchema,
   completion_report: completionReportPackageSchema,

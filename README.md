@@ -9,13 +9,14 @@ project artifacts (those live separately, outside this repo).
 ## What's in here
 
 - `agents/` — the subagent definitions: `assisted-delivery-supervisor` (the
-  orchestration hub) plus nine active specialists (`requirements-extractor`,
+  orchestration hub) plus ten active specialists (`requirements-extractor`,
   `research`, `solution-advisor`, `technical-design`, `story-drafter`,
-  `test-design`, `scaffolding`, `code-review`, `code-writer`), and one disabled
+  `test-design`, `scaffolding`, `code-review`, `code-writer`, `backlog`), and one disabled
   work-in-progress agent (`assisted-delivery-level-of-effort.md.disabled` —
   still undersizes on a second clean engagement; do not re-enable until
-  refined). Only `research`, `code-review`, and `code-writer` may query a
-  ServiceNow instance, and all three are read-only. `code-writer` is the only
+  refined). Only `research`, `code-review`, `code-writer`, and `backlog` may query a
+  ServiceNow instance, and all four are read-only. `backlog` changes Agile
+  records only through an XML file the owner imports. `code-writer` is the only
   specialist that writes code, and only in the output form the human chose
   (Fluent project edits inside the folder named for the run, copy/paste
   instructions, or background/fix scripts in its report folder); humans apply
@@ -33,6 +34,9 @@ project artifacts (those live separately, outside this repo).
   toolkit needs, for setting it up on another machine.
 - `docs/code-review-workflow.md` — how a code review flows from report to
   human decisions to fixes to re-review.
+- `docs/backlog-workflow.md` — loading approved stories into ServiceNow Agile,
+  syncing delivered work after each deploy, the owner's XML import, and the
+  read-only verification.
 - `docs/code-writer-workflow.md` — intake, current-state research, and the
   four output forms (Fluent edits, copy/paste, background scripts, fix
   scripts) the code writer produces from stories, a request, or approved

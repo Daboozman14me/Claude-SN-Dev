@@ -258,7 +258,9 @@ Allocate synchronized paths (application `general` if none is known):
 "$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<review-name>" --base code-review --extension html --extension json
 ```
 
-Set `artifacts.html` and `artifacts.json` to the exact allocated paths. A
+Set `artifacts.html` and `artifacts.json` to the exact allocated paths, and
+set `packageId` to `<application>-<review-name>-code-review-vNNN` (the
+allocated version) so it is unique across request folders. A
 re-review of the same code uses the same `--request`, so it becomes the next
 version alongside the prior one.
 

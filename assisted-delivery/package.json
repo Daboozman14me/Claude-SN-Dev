@@ -26,7 +26,9 @@
     "completion:compose": "tsx src/compose-completion-report.ts",
     "validate:assisted-completion-report": "tsx src/validate-assisted-completion-report.ts",
     "report:render": "tsx src/render-report-html.ts",
-    "contract:schema": "tsx src/print-contract-schema.ts"
+    "contract:schema": "tsx src/print-contract-schema.ts",
+    "backlog:build": "tsx src/build-backlog.ts",
+    "validate:assisted-backlog": "tsx src/validate-assisted-backlog.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

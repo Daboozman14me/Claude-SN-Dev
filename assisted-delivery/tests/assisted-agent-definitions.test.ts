@@ -32,6 +32,7 @@ const EXPECTED_AGENTS = [
   "assisted-delivery-scaffolding",
   "assisted-delivery-code-review",
   "assisted-delivery-code-writer",
+  "assisted-delivery-backlog",
   "assisted-delivery-supervisor",
 ];
 
@@ -65,10 +66,10 @@ test("specialists hold no Agent tool and the supervisor holds no Write tool", ()
   }
 });
 
-test("only research, code review, and code writer carry ServiceNow SDK skills", () => {
+test("only research, code review, code writer, and backlog carry ServiceNow SDK skills", () => {
   const research = readAgent("assisted-delivery-research");
   assert.match(research, /^skills: application-audit, servicenow-sdk:now-sdk$/m);
-  const sdkOnly = ["assisted-delivery-code-review", "assisted-delivery-code-writer"];
+  const sdkOnly = ["assisted-delivery-code-review", "assisted-delivery-code-writer", "assisted-delivery-backlog"];
   for (const name of sdkOnly) {
     assert.match(readAgent(name), /^skills: servicenow-sdk:now-sdk$/m);
   }
@@ -190,6 +191,21 @@ test("code reviewer stays read-only and leaves every decision to a human", () =>
   }
 });
 
+test("backlog agent never writes to ServiceNow and marks work Complete only on evidence", () => {
+  const agent = readAgent("assisted-delivery-backlog");
+  assert.match(agent, /^permissionMode: bypassPermissions$/m);
+  assert.match(agent, /\*\*Never write to ServiceNow\*\* — no REST calls, no scripts, no imports\./);
+  assert.match(agent, /The\s+owner imports the file you prepared/);
+  assert.match(agent, /Never invent story points, assignees, teams, products, dates, or status/);
+  assert.match(agent, /Never edit the story draft/);
+  assert.match(agent, /`partial` coverage is not Complete/);
+  assert.match(agent, /\*\*Before a sync, precheck every record\.\*\*/);
+  assert.match(agent, /\*\*stop and ask\*\*/);
+  assert.match(agent, /never write either by hand/);
+  assert.match(agent, /validate-assisted-backlog\.ts/);
+  assert.match(agent, /Import\s+XML/);
+});
+
 test("supervisor routes the complete assisted workflow", () => {
   const agent = readAgent("assisted-delivery-supervisor");
   assert.match(agent, /assisted-delivery-research/);
@@ -202,7 +218,10 @@ test("supervisor routes the complete assisted workflow", () => {
   assert.match(agent, /assisted-delivery-scaffolding/);
   assert.match(agent, /assisted-delivery-code-review/);
   assert.match(agent, /assisted-delivery-code-writer/);
-  assert.match(agent, /ten specialists above/);
+  assert.match(agent, /assisted-delivery-backlog/);
+  assert.match(agent, /eleven specialists above/);
+  assert.match(agent, /Offer \*\*load\*\* once the owner approves a Story Draft, and \*\*sync\*\* once a\s+deploy has been verified/);
+  assert.match(agent, /Backlog records change only through an owner-run import of a file prepared\s+by `assisted-delivery-backlog`/);
   assert.match(agent, /never records approve,\s+reject, or defer decisions/);
   assert.match(agent, /may\s+make read-only SDK queries solely to verify facts/);
   assert.match(agent, /no specialist ever commits, pushes, or deploys/);

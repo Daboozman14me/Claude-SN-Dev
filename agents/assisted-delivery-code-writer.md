@@ -344,6 +344,9 @@ Allocate synchronized paths (do not `cd` into the toolkit):
 "$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<run-name>" --base code-implementation --extension html --extension json
 ```
 
+Set `packageId` to `<application>-<run-name>-code-implementation-vNNN` (the
+allocated version) so it is unique across request folders.
+
 **Output composition — avoid the per-turn output cap.** Never compose a
 whole JSON package, script, or large source file in one tool call or turn.
 Write skeletons first and add content with a few larger `Edit` calls (one

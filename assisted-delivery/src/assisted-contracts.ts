@@ -3184,3 +3184,323 @@ export const completionReportPackageSchema = z
   })
   .strict();
 export type CompletionReportPackage = z.infer<typeof completionReportPackageSchema>;
+
+// ---------------------------------------------------------------------------
+// Backlog package: an approved story draft mapped onto ServiceNow Agile
+// (rm_release_scrum, rm_sprint, rm_epic, rm_story) for an owner-run XML import.
+
+export const BACKLOG_MODES = ["load", "sync", "verify"] as const;
+export const BACKLOG_TABLES = [
+  "cmdb_application_product_model",
+  "sys_user_group",
+  "sys_user_grmember",
+  "rm_release_scrum",
+  "rm_sprint",
+  "rm_epic",
+  "rm_story",
+] as const;
+export type BacklogTable = (typeof BACKLOG_TABLES)[number];
+export const BACKLOG_AGILE_TABLES: readonly BacklogTable[] = ["rm_release_scrum", "rm_sprint", "rm_epic", "rm_story"];
+export const BACKLOG_SOURCE_KINDS = ["product", "team", "team_member", "release", "sprint", "epic", "story"] as const;
+export const BACKLOG_STORY_STATES = ["-6", "1", "2", "-7", "-8", "3", "4"] as const;
+export const BACKLOG_PLANNING_STATES = ["-6", "1", "2", "3", "4"] as const;
+export const BACKLOG_STORY_BASES = ["deployed", "owner_confirmed", "partial", "implemented_not_deployed", "deferred", "not_started"] as const;
+export const BACKLOG_VERIFICATION_STATUSES = ["matches", "missing", "differs"] as const;
+export const BACKLOG_PRECHECK_STATUSES = ["absent", "matches_package", "changed_on_instance"] as const;
+export const BACKLOG_TABLE_FOR_KIND = {
+  product: "cmdb_application_product_model",
+  team: "sys_user_group",
+  team_member: "sys_user_grmember",
+  release: "rm_release_scrum",
+  sprint: "rm_sprint",
+  epic: "rm_epic",
+  story: "rm_story",
+} as const;
+export const BACKLOG_NUMBER_PREFIXES: Partial<Record<BacklogTable, string>> = {
+  rm_release_scrum: "RLSE",
+  rm_sprint: "SPNT",
+  rm_epic: "EPIC",
+  rm_story: "STRY",
+};
+export const BACKLOG_FIELDS: Record<BacklogTable, readonly string[]> = {
+  cmdb_application_product_model: ["name", "short_description"],
+  sys_user_group: ["name", "type", "active", "description"],
+  sys_user_grmember: ["group", "user"],
+  rm_release_scrum: ["number", "short_description", "start_date", "end_date", "state"],
+  rm_sprint: ["number", "short_description", "release", "assignment_group", "start_date", "end_date", "state"],
+  rm_epic: ["number", "short_description", "description", "product", "assignment_group", "state"],
+  rm_story: [
+    "number", "short_description", "description", "acceptance_criteria", "epic", "sprint", "release",
+    "product", "assignment_group", "state", "classification",
+  ],
+};
+export const BACKLOG_REFERENCE_FIELDS: Record<string, BacklogTable> = {
+  release: "rm_release_scrum",
+  sprint: "rm_sprint",
+  epic: "rm_epic",
+  product: "cmdb_application_product_model",
+  assignment_group: "sys_user_group",
+  group: "sys_user_group",
+};
+
+const glideDateTimeSchema = z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+const backlogNoteSchema = z.object({ id: z.string().min(1).max(200), text: z.string().min(1).max(10_000) }).strict();
+const backlogEvidenceSchema = z
+  .object({
+    path: filePathSchema.max(4_096),
+    packageId: z.string().min(1),
+    note: z.string().min(1).max(5_000),
+  })
+  .strict();
+
+export const backlogRecordSchema = z
+  .object({
+    table: z.enum(BACKLOG_TABLES),
+    sysId: sysIdSchema,
+    source: z.object({ kind: z.enum(BACKLOG_SOURCE_KINDS), id: z.string().min(1).max(200) }).strict(),
+    fields: z.record(z.string().min(1), z.string().max(200_000)),
+  })
+  .strict();
+export type BacklogRecord = z.infer<typeof backlogRecordSchema>;
+
+const backlogPlanSchema = z
+  .object({
+    // Created only when the owner names them; the agent never invents a team or product.
+    product: z
+      .object({ name: z.string().min(1).max(100), description: z.string().max(1_000).default("") })
+      .strict()
+      .optional(),
+    team: z
+      .object({
+        name: z.string().min(1).max(80),
+        typeSysIds: z.array(sysIdSchema).default([]),
+        description: z.string().max(1_000).default(""),
+        members: z.array(z.object({ userName: z.string().min(1), sysId: sysIdSchema }).strict()).default([]),
+      })
+      .strict()
+      .optional(),
+    numbering: z.object({ start: z.number().int().min(1).max(9_999_999) }).strict().optional(),
+    releases: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1).max(100),
+            name: z.string().min(1).max(160),
+            startDate: glideDateTimeSchema,
+            endDate: glideDateTimeSchema,
+            state: z.enum(BACKLOG_PLANNING_STATES),
+          })
+          .strict(),
+      )
+      .default([]),
+    sprints: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1).max(100),
+            name: z.string().min(1).max(160),
+            releaseId: z.string().min(1).max(100),
+            epicIds: z.array(z.string().min(1)).min(1),
+            startDate: glideDateTimeSchema,
+            endDate: glideDateTimeSchema,
+            state: z.enum(BACKLOG_PLANNING_STATES),
+          })
+          .strict(),
+      )
+      .default([]),
+    epicStateOverrides: z
+      .array(
+        z
+          .object({
+            epicId: z.string().min(1),
+            state: z.enum(BACKLOG_PLANNING_STATES),
+            reason: z.string().min(1).max(5_000),
+          })
+          .strict(),
+      )
+      .default([]),
+  })
+  .strict();
+export type BacklogPlan = z.infer<typeof backlogPlanSchema>;
+
+export const backlogPackageSchema = z
+  .object({
+    contractVersion: z.literal(ASSISTED_CONTRACT_VERSION),
+    packageType: z.literal("backlog"),
+    packageId: z.string().min(1),
+    title: z.string().min(1),
+    summary: z.string().min(1),
+    artifacts: assistedArtifactPairSchema,
+    modes: z.array(z.enum(BACKLOG_MODES)).min(1),
+    target: z.object({ application: z.string().min(1), instanceAlias: z.string().min(1) }).strict(),
+    storyDraft: z
+      .object({ path: filePathSchema.max(4_096), packageId: z.string().min(1), sha256: sha256Schema })
+      .strict(),
+    progressSources: z.array(backlogEvidenceSchema).default([]),
+    plan: backlogPlanSchema,
+    storyStatus: z
+      .array(
+        z
+          .object({
+            storyId: z.string().min(1),
+            state: z.enum(BACKLOG_STORY_STATES),
+            basis: z.enum(BACKLOG_STORY_BASES),
+            evidence: z.array(backlogEvidenceSchema).default([]),
+            note: z.string().min(1).max(5_000).optional(),
+          })
+          .strict(),
+      )
+      .min(1),
+    records: z.array(backlogRecordSchema).default([]),
+    importFiles: z
+      .array(
+        z
+          .object({
+            path: filePathSchema.max(4_096),
+            sha256: sha256Schema,
+            tables: z.array(z.enum(BACKLOG_TABLES)).min(1),
+            recordCount: z.number().int().min(1),
+          })
+          .strict(),
+      )
+      .default([]),
+    unloadDate: glideDateTimeSchema,
+    precheck: z
+      .array(
+        z
+          .object({
+            sysId: sysIdSchema,
+            status: z.enum(BACKLOG_PRECHECK_STATUSES),
+            fields: z.array(z.string().min(1)).default([]),
+            approvedOverwrite: z.string().min(1).max(5_000).optional(),
+          })
+          .strict(),
+      )
+      .default([]),
+    instanceChecks: z
+      .array(z.object({ query: z.string().min(1).max(2_000), result: z.string().min(1).max(5_000) }).strict())
+      .default([]),
+    verification: z
+      .array(
+        z
+          .object({
+            sysId: sysIdSchema,
+            status: z.enum(BACKLOG_VERIFICATION_STATUSES),
+            fields: z.array(z.string().min(1)).default([]),
+            note: z.string().min(1).max(5_000).optional(),
+          })
+          .strict(),
+      )
+      .default([]),
+    questions: z.array(backlogNoteSchema).default([]),
+    assumptions: z.array(backlogNoteSchema).default([]),
+    limitations: z.array(backlogNoteSchema).default([]),
+    warnings: z.array(z.string().min(1)).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const issue = (path: (string | number)[], message: string): void => {
+      context.addIssue({ code: "custom", path, message });
+    };
+    if (new Set(value.modes).size !== value.modes.length) issue(["modes"], "Modes must be unique.");
+
+    // Plan
+    const releaseIds = new Set(value.plan.releases.map((release) => release.id));
+    if (releaseIds.size !== value.plan.releases.length) issue(["plan", "releases"], "Release ids must be unique.");
+    if (new Set(value.plan.sprints.map((sprint) => sprint.id)).size !== value.plan.sprints.length) {
+      issue(["plan", "sprints"], "Sprint ids must be unique.");
+    }
+    const plannedEpics = new Set<string>();
+    value.plan.sprints.forEach((sprint, index) => {
+      if (!releaseIds.has(sprint.releaseId)) issue(["plan", "sprints", index, "releaseId"], `Unknown release '${sprint.releaseId}'.`);
+      for (const epicId of sprint.epicIds) {
+        if (plannedEpics.has(epicId)) issue(["plan", "sprints", index, "epicIds"], `Epic '${epicId}' is in more than one sprint.`);
+        plannedEpics.add(epicId);
+      }
+      if (sprint.endDate < sprint.startDate) issue(["plan", "sprints", index, "endDate"], "Sprint ends before it starts.");
+    });
+    value.plan.releases.forEach((release, index) => {
+      if (release.endDate < release.startDate) issue(["plan", "releases", index, "endDate"], "Release ends before it starts.");
+    });
+
+    // Story status: state must follow the evidence
+    const statusIds = new Set<string>();
+    value.storyStatus.forEach((status, index) => {
+      const at = ["storyStatus", index];
+      if (statusIds.has(status.storyId)) issue([...at, "storyId"], `Duplicate status for '${status.storyId}'.`);
+      statusIds.add(status.storyId);
+      if (status.state === "3" && status.basis !== "deployed" && status.basis !== "owner_confirmed") {
+        issue([...at, "basis"], "A Complete story must be implemented in a deployed version or confirmed done by the owner.");
+      }
+      if ((status.basis === "deployed" || status.basis === "owner_confirmed") && status.state !== "3") {
+        issue([...at, "state"], "A story implemented in a deployed version, or confirmed done by the owner, is Complete (3).");
+      }
+      if (status.basis === "owner_confirmed" && !status.note) issue([...at, "note"], "An owner-confirmed story needs a note saying who confirmed it and when.");
+      if (status.basis === "partial" && status.state !== "2") issue([...at, "state"], "A partly implemented story is Work in progress (2).");
+      if (status.basis === "implemented_not_deployed" && status.state !== "-7") {
+        issue([...at, "state"], "A story implemented but not deployed is Ready for testing (-7).");
+      }
+      if ((status.basis === "deferred" || status.basis === "not_started") && !["-6", "1"].includes(status.state)) {
+        issue([...at, "state"], "A deferred or not-started story is Draft (-6) or Ready (1).");
+      }
+      if (["deployed", "partial", "implemented_not_deployed"].includes(status.basis) && status.evidence.length === 0) {
+        issue([...at, "evidence"], "Implemented stories need code-implementation evidence.");
+      }
+      if (status.basis === "deferred" && !status.note) issue([...at, "note"], "A deferred story needs a note saying who deferred it.");
+    });
+
+    // Records
+    const bySysId = new Map<string, BacklogRecord>();
+    value.records.forEach((record, index) => {
+      const at = ["records", index];
+      if (bySysId.has(record.sysId)) issue([...at, "sysId"], `Duplicate sys_id '${record.sysId}'.`);
+      bySysId.set(record.sysId, record);
+      if (BACKLOG_TABLE_FOR_KIND[record.source.kind] !== record.table) {
+        issue([...at, "table"], `A ${record.source.kind} record belongs in ${BACKLOG_TABLE_FOR_KIND[record.source.kind]}.`);
+      }
+      const allowed = BACKLOG_FIELDS[record.table];
+      for (const field of Object.keys(record.fields)) {
+        if (!allowed.includes(field)) issue([...at, "fields", field], `Field '${field}' is not written to ${record.table}.`);
+      }
+      if (BACKLOG_AGILE_TABLES.includes(record.table)) {
+        const states: readonly string[] = record.table === "rm_story" ? BACKLOG_STORY_STATES : BACKLOG_PLANNING_STATES;
+        if (!states.includes(record.fields.state ?? "")) issue([...at, "fields", "state"], `Invalid ${record.table} state '${record.fields.state ?? ""}'.`);
+        if (!record.fields.short_description) issue([...at, "fields", "short_description"], "Every Agile record needs a short_description.");
+      } else if (record.table !== "sys_user_grmember" && !record.fields.name) {
+        issue([...at, "fields", "name"], `A ${record.table} record needs a name.`);
+      }
+    });
+    value.records.forEach((record, index) => {
+      for (const [field, table] of Object.entries(BACKLOG_REFERENCE_FIELDS)) {
+        const ref = record.fields[field];
+        if (ref === undefined || ref === "") continue;
+        if (bySysId.get(ref)?.table !== table) {
+          issue(["records", index, "fields", field], `Reference '${ref}' is not a ${table} record in this package.`);
+        }
+      }
+      if (record.table === "rm_sprint" && !record.fields.release) issue(["records", index, "fields", "release"], "A sprint must reference its release.");
+      if (record.table === "sys_user_grmember" && !record.fields.user) issue(["records", index, "fields", "user"], "A team membership names its user.");
+    });
+
+    // Instance safety: never overwrite owner edits silently
+    value.precheck.forEach((entry, index) => {
+      if (!bySysId.has(entry.sysId)) issue(["precheck", index, "sysId"], "Precheck names a record that is not in the package.");
+      if (entry.status === "changed_on_instance" && !entry.approvedOverwrite) {
+        issue(["precheck", index, "approvedOverwrite"], "A record changed on the instance needs the owner's approval to overwrite it.");
+      }
+    });
+    if (value.modes.includes("verify")) {
+      const verified = new Set(value.verification.map((entry) => entry.sysId));
+      value.records.forEach((record, index) => {
+        if (!verified.has(record.sysId)) issue(["records", index], `Record ${record.source.kind} ${record.source.id} was not verified.`);
+      });
+      value.verification.forEach((entry, index) => {
+        if (entry.status !== "matches" && !entry.note) issue(["verification", index, "note"], "A missing or different record needs a note.");
+      });
+    }
+    const fileRecords = value.importFiles.reduce((sum, file) => sum + file.recordCount, 0);
+    if (value.importFiles.length > 0 && fileRecords !== value.records.length) {
+      issue(["importFiles"], `Import files hold ${fileRecords} records but the package has ${value.records.length}.`);
+    }
+  });
+export type BacklogPackage = z.infer<typeof backlogPackageSchema>;

@@ -1,9 +1,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import {
+  BACKLOG_TABLES,
   CODE_REVIEW_SEVERITIES,
+  backlogPackageSchema,
   codeImplementationPackageSchema,
   codeReviewPackageSchema,
+  type BacklogPackage,
   type CodeImplementationPackage,
   type CodeReviewPackage,
 } from "./assisted-contracts.js";
@@ -260,8 +263,60 @@ ${table(
   ]);
 }
 
+export function renderBacklogHtml(value: BacklogPackage): string {
+  const STATE_LABELS: Record<string, string> = {
+    "-6": "Draft", "1": "Ready", "2": "Work in progress", "-7": "Ready for testing", "-8": "Testing", "3": "Complete", "4": "Cancelled",
+  };
+  const label = (state: string | undefined): string => STATE_LABELS[state ?? ""] ?? state ?? "";
+  const bySysId = new Map(value.records.map((record) => [record.sysId, record]));
+  const name = (sysId: string | undefined): string => (sysId ? bySysId.get(sysId)?.fields.short_description ?? sysId : "");
+  const storyRecord = new Map(value.records.filter((record) => record.table === "rm_story").map((record) => [record.source.id, record]));
+  const counts = BACKLOG_TABLES.map(
+    (tableName) => [tableName, String(value.records.filter((record) => record.table === tableName).length)],
+  ).filter(([, count]) => count !== "0");
+  const verification = new Map(value.verification.map((entry) => [entry.sysId, entry]));
+  return page(value.title, [
+    `<h2>Summary</h2>\n<p>${escape(value.summary)}</p>\n<p>Modes: ${escape(value.modes.join(", "))}. Target: ${escape(value.target.application)} on ${escape(value.target.instanceAlias)}.</p>`,
+    `<h2>Inputs</h2>\n${table(["Input", "Package", "Path"], [
+      ["Story draft", value.storyDraft.packageId, value.storyDraft.path],
+      ...value.progressSources.map((source) => [source.note, source.packageId, source.path]),
+    ])}`,
+    `<h2>Plan</h2>\n<h3>Releases</h3>\n${table(["Release", "Start", "End", "State"], value.plan.releases.map((release) => [release.name, release.startDate, release.endDate, label(release.state)]))}
+<h3>Sprints</h3>\n${table(["Sprint", "Release", "Epics", "Start", "End", "State"], value.plan.sprints.map((sprint) => [
+      sprint.name, value.plan.releases.find((release) => release.id === sprint.releaseId)?.name ?? sprint.releaseId, sprint.epicIds.join(", "), sprint.startDate, sprint.endDate, label(sprint.state),
+    ]))}${value.plan.epicStateOverrides.length > 0 ? `\n<h3>Epic state overrides</h3>\n${table(["Epic", "State", "Reason"], value.plan.epicStateOverrides.map((entry) => [entry.epicId, label(entry.state), entry.reason]))}` : ""}`,
+    `<h2>Story Status</h2>\n${table(["Story", "State", "Basis", "Sprint", "Evidence", "Note"], value.storyStatus.map((status) => {
+      const record = storyRecord.get(status.storyId);
+      return [
+        record?.fields.short_description ?? status.storyId,
+        label(status.state),
+        status.basis.replace(/_/g, " "),
+        name(record?.fields.sprint),
+        status.evidence.map((evidence) => evidence.packageId).join(", "),
+        status.note ?? "",
+      ];
+    }))}`,
+    `<h2>Records</h2>\n${table(["Table", "Records"], counts)}\n${table(["Table", "Record", "State", "sys_id"], value.records.filter((record) => record.table !== "rm_story").map((record) => [
+      record.table, record.fields.short_description ?? "", label(record.fields.state), record.sysId,
+    ]))}`,
+    `<h2>Import Steps</h2>\n${table(["File", "Tables", "Records", "sha256"], value.importFiles.map((file) => [file.path, file.tables.join(", "), String(file.recordCount), file.sha256]))}
+<ol><li>Sign in to ${escape(value.target.instanceAlias)} as an admin in your normal browser.</li><li>Open the list of the first table in the file (for example <code>rm_story.list</code>), right-click any column heading and choose <b>Import XML</b>.</li><li>Choose the file above and click <b>Upload</b>. The import creates or updates every record in the file; importing the same file again changes nothing.</li><li>Tell the backlog agent the import is done so it can verify the records read-only.</li></ol>`,
+    `<h2>Verification</h2>\n${value.modes.includes("verify") ? table(["Record", "Status", "Fields", "Note"], value.records.map((record) => {
+      const entry = verification.get(record.sysId);
+      return [`${record.source.kind} ${record.source.id}`, entry?.status ?? "not verified", entry?.fields.join(", ") ?? "", entry?.note ?? ""];
+    })) : "<p>Not verified yet: run verify mode after the import.</p>"}`,
+    `<h2>Questions</h2>\n${list(value.questions.map((question) => `${question.id}: ${question.text}`))}`,
+    limitationsSection(value.limitations, [...value.assumptions.map((entry) => `Assumption ${entry.id}: ${entry.text}`), ...value.warnings]),
+  ]);
+}
+
 export function renderReportFile(jsonPath: string): string {
   const raw = JSON.parse(readFileSync(resolve(jsonPath), "utf8")) as { packageType?: string };
+  if (raw.packageType === "backlog") {
+    const value = backlogPackageSchema.parse(raw);
+    writeFileSync(value.artifacts.html, renderBacklogHtml(value));
+    return value.artifacts.html;
+  }
   if (raw.packageType === "code_implementation") {
     const value = codeImplementationPackageSchema.parse(raw);
     writeFileSync(value.artifacts.html, renderCodeImplementationHtml(value));
@@ -278,7 +333,7 @@ export function renderReportFile(jsonPath: string): string {
 if (isDirectExecution(import.meta.url, process.argv[1])) {
   const path = process.argv[2];
   try {
-    if (!path) throw new Error("Usage: npm run report:render -- <code-implementation-vNNN.json | code-review-vNNN.json>");
+    if (!path) throw new Error("Usage: npm run report:render -- <code-implementation-vNNN.json | code-review-vNNN.json | backlog-vNNN.json>");
     process.stdout.write(`Rendered ${renderReportFile(path)}\n`);
   } catch (error) {
     process.stderr.write(`Cannot render report: ${error instanceof Error ? error.message : String(error)}\n`);
