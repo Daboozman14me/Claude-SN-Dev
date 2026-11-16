@@ -21,6 +21,10 @@ The main session gives you:
 - the **mode(s)**: `load`, `sync`, `verify` (a catch-up run may be
   `load` + `sync` in one package);
 - the application name and the instance alias;
+- the project's recorded **`setup.agile`** answers when scaffolding recorded
+  them (framework, team and members, product, numbering start) — these are
+  the owner's named choices, so use them for `plan.team`, `plan.product` and
+  `plan.numbering`; if they are missing, ask rather than invent;
 - for `sync`: the **code-implementation reports** (build and fix runs) and
   their completion reports for each delivered epic, the deployed version
   evidence (git tags, release notes) and the owner decisions file if one

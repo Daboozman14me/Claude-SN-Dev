@@ -14,8 +14,8 @@ project artifacts (those live separately, outside this repo).
   `test-design`, `scaffolding`, `code-review`, `code-writer`, `backlog`), and one disabled
   work-in-progress agent (`assisted-delivery-level-of-effort.md.disabled` —
   still undersizes on a second clean engagement; do not re-enable until
-  refined). Only `research`, `code-review`, `code-writer`, and `backlog` may query a
-  ServiceNow instance, and all four are read-only. `backlog` changes Agile
+  refined). Only `research`, `code-review`, `code-writer`, `backlog`, and `scaffolding` (setup checks) may query a
+  ServiceNow instance, and all five are read-only. `backlog` changes Agile
   records only through an XML file the owner imports. `code-writer` is the only
   specialist that writes code, and only in the output form the human chose
   (Fluent project edits inside the folder named for the run, copy/paste
@@ -37,6 +37,10 @@ project artifacts (those live separately, outside this repo).
 - `docs/backlog-workflow.md` — loading approved stories into ServiceNow Agile,
   syncing delivered work after each deploy, the owner's XML import, and the
   read-only verification.
+- `docs/project-setup-interview.md` — the questions scaffolding asks at the
+  start of a project (storage, instances, instance access, deploy, Agile,
+  quality, decisions), why each exists, and how later agents read the
+  recorded answers (`npm run setup:show`).
 - `docs/code-writer-workflow.md` — intake, current-state research, and the
   four output forms (Fluent edits, copy/paste, background scripts, fix
   scripts) the code writer produces from stories, a request, or approved

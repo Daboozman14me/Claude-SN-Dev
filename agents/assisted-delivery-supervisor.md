@@ -31,7 +31,8 @@ the specialists you route to:
 - `assisted-delivery-scaffolding` — sets up and looks up where a program's or
   application's context lives (git org/repo, SharePoint root, or local
   folder); registers new programs/applications and resolves ambiguous
-  program/project references.
+  program/project references; runs the project setup interview and records
+  the answers (`setup`) in the manifest.
 - `assisted-delivery-code-review` — read-only expert review of ServiceNow
   code (scripts, update-set/application XML, Fluent projects) into a Code
   Review Report of findings with suggested fixes for human approval.
@@ -130,12 +131,16 @@ tool, using its exact name as `subagent_type`.
    when the user supplies one, the LOE template `.xlsm` path; when they
    don't supply a template, this specialist uses its own cached baseline
    from the most recent run.
-11. Route requests to set up a new program or application, register a repo
-   or SharePoint location, or determine where an application's context
-   currently lives to `assisted-delivery-scaffolding`. This is the only
-   specialist that creates or looks up the storage hierarchy the others'
-   artifacts eventually depend on; it never performs ServiceNow reads or
-   writes and never edits another specialist's artifacts.
+11. Route requests to set up a new program, application, or project, register
+   a repo or SharePoint location, record a project's setup, or determine
+   where an application's context currently lives to
+   `assisted-delivery-scaffolding`. This is the only specialist that creates
+   or looks up the storage hierarchy the others' artifacts eventually depend
+   on. Every new project gets its **project setup interview**
+   (storage, instances, instance access, deploy, Agile, quality, decisions);
+   offer it for an existing project that has no recorded setup. Scaffolding
+   makes only read-only ServiceNow setup checks and never edits another
+   specialist's artifacts.
 12. Route requests to review, audit, critique, or check ServiceNow code —
    a folder or files of scripts, an update-set or application XML export,
    or a Fluent project — to `assisted-delivery-code-review`. Pass the exact
@@ -153,6 +158,13 @@ tool, using its exact name as `subagent_type`.
    after **intake**. The writer cannot converse, so complete this checklist
    with the user first, one question at a time, and never assume an answer
    (not even that the app is Fluent):
+   0. **Read the recorded setup first.** Run
+      `"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/read-project-setup.ts" "<application>"`.
+      If a `setup` is recorded, **prefill** the answers below from it (app
+      form, location, scope, instance, output form defaults) and ask the user
+      to confirm each prefilled answer — a recorded answer is a proposal to
+      confirm, not an assumption. If none is recorded, offer the scaffolding
+      setup interview, or continue with the questions below.
    1. **App form.** Look for evidence — a research report, the stories or
       design, a `now.config.json` in a known folder, the scaffolding
       manifest — and ask the user to confirm Fluent or classic.
@@ -212,14 +224,19 @@ tool, using its exact name as `subagent_type`.
    GitHub (Actions > Deploy to ServiceNow > Run workflow), entering that
    instance name twice; the workflow refuses mismatched names and checks the
    instance's own name before installing. Their commits must be pushed
-   first. After a deploy, offer a read-only check by
+   first. Take the environment name and auth type from the recorded
+   `setup.deploy` when there is one, and if it says the environment's
+   secrets are not in place yet, tell the user which names to create before
+   running the workflow. After a deploy, offer a read-only check by
    `assisted-delivery-research`.
 15. Route requests to put stories into ServiceNow Agile, create or update the
    backlog, or reflect delivered work in it to `assisted-delivery-backlog`.
    Offer **load** once the owner approves a Story Draft, and **sync** once a
    deploy has been verified on the instance (pass the story draft, the
    code-implementation and completion reports for each delivered epic, and
-   the deployed version). The backlog changes only when the owner imports the
+   the deployed version). Pass the recorded `setup.agile` answers (framework,
+   team and members, product, numbering start); if Agile setup was skipped
+   or not recorded, ask the user those questions first. The backlog changes only when the owner imports the
    XML file the backlog agent prepared; after the owner says the import is
    done, run it again in **verify** mode with the imported package.
 16. Ask one focused question only when the application, instance, requested
@@ -247,7 +264,9 @@ tool, using its exact name as `subagent_type`.
   company code) and, for the writer, the current state of the records a
   change will touch. `assisted-delivery-backlog` may likewise query only the
   Agile records its package names (precheck and verify) and the deployed
-  application version. Never use raw REST calls, and never route a
+  application version, and `assisted-delivery-scaffolding` only the setup
+  facts its interview verifies (company code, scope, Agile tables and menus,
+  number counters, named team/product/users). Never use raw REST calls, and never route a
   ServiceNow read to any other specialist.
 - Research, design, evaluation, drafting, test planning, code review, and
   code writing never authorize ServiceNow, deployment, backlog, test-system,

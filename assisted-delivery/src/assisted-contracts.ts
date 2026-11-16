@@ -2180,12 +2180,162 @@ export type ProgramManifestServiceNowInstance = z.infer<
   typeof programManifestServiceNowInstanceSchema
 >;
 
+// ---------------------------------------------------------------------------
+// Project setup: the answers to the scaffolding setup interview, recorded once
+// per application so later agents read them instead of asking again. Names only,
+// never secret values (every object is strict).
+
+export const PROJECT_SETUP_STATUSES = ["answered", "default", "skipped"] as const;
+const setupSectionBase = {
+  status: z.enum(PROJECT_SETUP_STATUSES),
+  decidedAt: z.string().min(1),
+  note: z.string().min(1).max(5_000).optional(),
+};
+
+export const projectSetupSchema = z
+  .object({
+    project: z
+      .object({
+        ...setupSectionBase,
+        appForm: z.enum(["fluent", "classic"]).optional(),
+        change: z.enum(["new_app", "existing_app"]).optional(),
+        scope: z.string().regex(/^x_[a-z0-9]+_[a-z0-9_]+$/).optional(),
+        companyCode: z.string().regex(/^[0-9a-z]+$/).optional(),
+        localPath: z.string().min(1).optional(),
+      })
+      .strict()
+      .optional(),
+    instances: z
+      .object({
+        ...setupSectionBase,
+        list: z
+          .array(
+            z
+              .object({
+                alias: z.string().min(1),
+                url: z.string().min(1).optional(),
+                purpose: z.enum(["dev", "test", "prod"]),
+                companyCodeVerifiedAt: z.string().min(1).optional(),
+              })
+              .strict(),
+          )
+          .default([]),
+      })
+      .strict()
+      .optional(),
+    instanceAccess: z
+      .object({
+        ...setupSectionBase,
+        sdkAlias: z.string().min(1).optional(),
+        basicAuthForHumans: z.enum(["allowed", "blocked", "unknown"]).optional(),
+      })
+      .strict()
+      .optional(),
+    deploy: z
+      .object({
+        ...setupSectionBase,
+        method: z.enum(["github_actions", "update_set_import", "manual"]).optional(),
+        repo: z.string().min(1).optional(),
+        environments: z
+          .array(
+            z
+              .object({
+                instanceAlias: z.string().min(1),
+                githubEnvironment: z.string().min(1),
+                authType: z.enum(["basic", "oauth"]),
+                secretsInPlace: z.boolean(),
+              })
+              .strict(),
+          )
+          .default([]),
+        deployUser: z
+          .object({ userName: z.string().min(1), identityType: z.enum(["human", "machine"]) })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
+    agile: z
+      .object({
+        ...setupSectionBase,
+        use: z.boolean().optional(),
+        framework: z.enum(["classic", "safe", "cwm"]).optional(),
+        menuActive: z.enum(["yes", "no", "unknown"]).optional(),
+        team: z.object({ name: z.string().min(1).max(80), members: z.array(z.string().min(1)).default([]) }).strict().optional(),
+        product: z.object({ name: z.string().min(1).max(100) }).strict().optional(),
+        numberingStart: z.number().int().min(1).max(9_999_999).optional(),
+        importMethod: z.literal("xml_import").optional(),
+      })
+      .strict()
+      .optional(),
+    quality: z
+      .object({
+        ...setupSectionBase,
+        atf: z.enum(["enabled", "deferred"]).optional(),
+        runtimeAccessTracking: z.enum(["enforcing", "permissive"]).optional(),
+        findingsDecidedBy: z.string().min(1).optional(),
+      })
+      .strict()
+      .optional(),
+    decisions: z
+      .object({ ...setupSectionBase, logPath: z.string().min(1).optional() })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const issue = (path: (string | number)[], message: string): void => {
+      context.addIssue({ code: "custom", path, message });
+    };
+    const decided = (section: { status: string } | undefined): boolean => Boolean(section && section.status !== "skipped");
+    const require = (name: string, section: Record<string, unknown> | undefined, fields: string[]): void => {
+      if (!decided(section as { status: string } | undefined)) return;
+      for (const field of fields) {
+        if (section![field] === undefined) issue([name, field], `An ${section!.status} ${name} section needs '${field}'.`);
+      }
+    };
+    const { project, instances, instanceAccess, deploy, agile, quality, decisions } = value;
+    require("project", project, ["appForm", "change"]);
+    require("instanceAccess", instanceAccess, ["basicAuthForHumans"]);
+    require("deploy", deploy, ["method"]);
+    require("agile", agile, ["use"]);
+    require("quality", quality, ["atf", "runtimeAccessTracking"]);
+    require("decisions", decisions, ["logPath"]);
+    if (decided(instances) && instances!.list.length === 0) issue(["instances", "list"], "A decided instances section lists at least one instance.");
+
+    if (project?.scope && project.companyCode && project.change === "new_app") {
+      if (!project.scope.startsWith(`x_${project.companyCode}_`)) {
+        issue(["project", "scope"], `A new app's scope must start with x_${project.companyCode}_ (the instance company code).`);
+      }
+      if (project.scope.length > 18) issue(["project", "scope"], "A scope is at most 18 characters.");
+    }
+    if (decided(deploy) && deploy!.method === "github_actions") {
+      if (!deploy!.repo) issue(["deploy", "repo"], "GitHub Actions deploys need the repo.");
+      if (deploy!.environments.length === 0) issue(["deploy", "environments"], "GitHub Actions deploys need one environment per target instance.");
+      if (deploy!.environments.some((environment) => environment.authType === "oauth") && deploy!.deployUser?.identityType !== "human") {
+        issue(["deploy", "deployUser"], "OAuth installs run as a Human deploy user (now-sdk install refuses Machine users).");
+      }
+    }
+    const known = new Set((instances?.list ?? []).map((instance) => instance.alias));
+    deploy?.environments.forEach((environment, index) => {
+      if (known.size > 0 && !known.has(environment.instanceAlias)) {
+        issue(["deploy", "environments", index, "instanceAlias"], `Instance '${environment.instanceAlias}' is not in the instances list.`);
+      }
+    });
+    if (decided(agile) && agile!.use) {
+      if (!agile!.framework) issue(["agile", "framework"], "Using Agile needs a framework (classic, safe or cwm).");
+      if (!agile!.menuActive) issue(["agile", "menuActive"], "Record whether the framework's menu is active (yes, no, unknown).");
+    }
+  });
+export type ProjectSetup = z.infer<typeof projectSetupSchema>;
+
 export const programManifestProjectSchema = z
   .object({
     application: z.string().min(1),
     repo: z.string().min(1).optional(),
     folder: z.string().min(1).optional(),
     serviceNowInstance: programManifestServiceNowInstanceSchema.optional(),
+    setup: projectSetupSchema.optional(),
   })
   .strict()
   .superRefine((value, context) => {

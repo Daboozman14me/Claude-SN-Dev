@@ -4,6 +4,7 @@ import {
   codeImplementationPackageSchema,
   codeReviewPackageSchema,
   completionReportPackageSchema,
+  projectSetupSchema,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
 
@@ -14,6 +15,7 @@ const SCHEMAS: Record<string, z.ZodType> = {
   code_implementation: codeImplementationPackageSchema,
   code_review: codeReviewPackageSchema,
   completion_report: completionReportPackageSchema,
+  project_setup: projectSetupSchema,
 };
 
 export function contractJsonSchema(packageType: string): unknown {

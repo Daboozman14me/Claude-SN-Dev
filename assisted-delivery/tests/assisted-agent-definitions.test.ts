@@ -66,10 +66,10 @@ test("specialists hold no Agent tool and the supervisor holds no Write tool", ()
   }
 });
 
-test("only research, code review, code writer, and backlog carry ServiceNow SDK skills", () => {
+test("only research, code review, code writer, backlog, and scaffolding carry ServiceNow SDK skills", () => {
   const research = readAgent("assisted-delivery-research");
   assert.match(research, /^skills: application-audit, servicenow-sdk:now-sdk$/m);
-  const sdkOnly = ["assisted-delivery-code-review", "assisted-delivery-code-writer", "assisted-delivery-backlog"];
+  const sdkOnly = ["assisted-delivery-code-review", "assisted-delivery-code-writer", "assisted-delivery-backlog", "assisted-delivery-scaffolding"];
   for (const name of sdkOnly) {
     assert.match(readAgent(name), /^skills: servicenow-sdk:now-sdk$/m);
   }
@@ -220,6 +220,10 @@ test("supervisor routes the complete assisted workflow", () => {
   assert.match(agent, /assisted-delivery-code-writer/);
   assert.match(agent, /assisted-delivery-backlog/);
   assert.match(agent, /eleven specialists above/);
+  assert.match(agent, /\*\*Read the recorded setup first\.\*\*/);
+  assert.match(agent, /a recorded answer is a proposal to\s+confirm, not an assumption/);
+  assert.match(agent, /Pass the recorded `setup\.agile` answers/);
+  assert.match(agent, /\*\*project setup interview\*\*/);
   assert.match(agent, /Offer \*\*load\*\* once the owner approves a Story Draft, and \*\*sync\*\* once a\s+deploy has been verified/);
   assert.match(agent, /Backlog records change only through an owner-run import of a file prepared\s+by `assisted-delivery-backlog`/);
   assert.match(agent, /never records approve,\s+reject, or defer decisions/);
@@ -258,7 +262,14 @@ test("scaffolding agent keeps the personal registry out-of-tree and requires exp
   assert.match(agent, /monorepo exception/i);
   assert.match(agent, /Never create a GitHub org/);
   assert.match(agent, /Never write the personal registry anywhere inside a tracked\/junctioned/);
-  assert.match(agent, /Perform no ServiceNow instance reads or writes/);
+  assert.match(agent, /Perform no ServiceNow instance writes and no backlog writes; your only\s+instance reads are the read-only setup checks above/);
+  assert.match(agent, /## Project setup interview/);
+  assert.match(agent, /\*\*One question at a time\*\*/);
+  assert.match(agent, /\*\*Write each section into the manifest as soon as it is decided\*\*/);
+  assert.match(agent, /`SN_OAUTH_CLIENT_ID` and `SN_OAUTH_CLIENT_SECRET`/);
+  assert.match(agent, /\*\*Never ask for or handle the values\.\*\*/);
+  assert.match(agent, /\*\*only as the owner names\s+them\*\*/);
+  assert.match(agent, /never overwrite the owner's\s+answer with your own/);
   assert.match(agent, /\*\*generate the complete request\*\*/);
   assert.match(agent, /\*\*Leave it completely empty\*\*/);
   assert.match(agent, /never ask for or handle\s+the values/);

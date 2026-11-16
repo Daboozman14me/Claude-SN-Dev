@@ -104,6 +104,12 @@ against acceptance criteria before approval).
   stays exclusively in `now-sdk`'s own credential store, resolved by
   `now-sdk auth --list`; the registry/manifest never holds a password or any
   other secret.
+- **A project entry may also record its `setup`** — the answers to the
+  project setup interview (app form and scope, instances, instance access,
+  deploy method and GitHub environments, Agile framework/team/product,
+  quality choices, decisions log). Later agents read it with `setup:show`
+  instead of asking again. Same rule: names and choices only, never a secret
+  (see `docs/project-setup-interview.md`).
 
 ### Worked example
 

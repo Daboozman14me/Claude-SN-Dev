@@ -28,7 +28,8 @@
     "report:render": "tsx src/render-report-html.ts",
     "contract:schema": "tsx src/print-contract-schema.ts",
     "backlog:build": "tsx src/build-backlog.ts",
-    "validate:assisted-backlog": "tsx src/validate-assisted-backlog.ts"
+    "validate:assisted-backlog": "tsx src/validate-assisted-backlog.ts",
+    "setup:show": "tsx src/read-project-setup.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
