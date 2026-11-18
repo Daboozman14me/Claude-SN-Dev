@@ -9,13 +9,13 @@ project artifacts (those live separately, outside this repo).
 ## What's in here
 
 - `agents/` — the subagent definitions: `assisted-delivery-supervisor` (the
-  orchestration hub) plus ten active specialists (`requirements-extractor`,
+  orchestration hub) plus eleven active specialists (`requirements-extractor`,
   `research`, `solution-advisor`, `technical-design`, `story-drafter`,
-  `test-design`, `scaffolding`, `code-review`, `code-writer`, `backlog`), and one disabled
+  `test-design`, `scaffolding`, `code-review`, `code-writer`, `backlog`, `user-guide`), and one disabled
   work-in-progress agent (`assisted-delivery-level-of-effort.md.disabled` —
   still undersizes on a second clean engagement; do not re-enable until
-  refined). Only `research`, `code-review`, `code-writer`, `backlog`, and `scaffolding` (setup checks) may query a
-  ServiceNow instance, and all five are read-only. `backlog` changes Agile
+  refined). Only `research`, `code-review`, `code-writer`, `backlog`, `scaffolding` (setup checks), and `user-guide` (label checks) may query a
+  ServiceNow instance, and all six are read-only. `backlog` changes Agile
   records only through an XML file the owner imports. `code-writer` is the only
   specialist that writes code, and only in the output form the human chose
   (Fluent project edits inside the folder named for the run, copy/paste
@@ -37,6 +37,9 @@ project artifacts (those live separately, outside this repo).
 - `docs/backlog-workflow.md` — loading approved stories into ServiceNow Agile,
   syncing delivered work after each deploy, the owner's XML import, and the
   read-only verification.
+- `docs/user-guide-workflow.md` — the end-user and admin guide written after a
+  verified deploy, describing only delivered work, with every printed name
+  checked on the instance.
 - `docs/project-setup-interview.md` — the questions scaffolding asks at the
   start of a project (storage, instances, instance access, deploy, Agile,
   quality, decisions), why each exists, and how later agents read the

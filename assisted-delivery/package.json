@@ -29,7 +29,8 @@
     "contract:schema": "tsx src/print-contract-schema.ts",
     "backlog:build": "tsx src/build-backlog.ts",
     "validate:assisted-backlog": "tsx src/validate-assisted-backlog.ts",
-    "setup:show": "tsx src/read-project-setup.ts"
+    "setup:show": "tsx src/read-project-setup.ts",
+    "validate:assisted-user-guide": "tsx src/validate-assisted-user-guide.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

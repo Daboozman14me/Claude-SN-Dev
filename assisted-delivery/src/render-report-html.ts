@@ -6,9 +6,11 @@ import {
   backlogPackageSchema,
   codeImplementationPackageSchema,
   codeReviewPackageSchema,
+  userGuidePackageSchema,
   type BacklogPackage,
   type CodeImplementationPackage,
   type CodeReviewPackage,
+  type UserGuidePackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
 
@@ -310,8 +312,55 @@ export function renderBacklogHtml(value: BacklogPackage): string {
   ]);
 }
 
+export function renderUserGuideHtml(value: UserGuidePackage): string {
+  const ordered = [...value.parts].sort((a, b) => (a.audience === "end_user" ? -1 : 1) - (b.audience === "end_user" ? -1 : 1));
+  const toc = ordered
+    .map((part, index) => `<li><a href="#part-${index + 1}">${escape(part.title)}</a><ol>${part.sections
+      .map((section) => `<li><a href="#${escape(section.id)}">${escape(section.title)}</a></li>`)
+      .join("")}</ol></li>`)
+    .join("");
+  const section = (entry: UserGuidePackage["parts"][number]["sections"][number]): string => {
+    const steps = entry.steps.length === 0 ? "" : `<ol class="steps">${entry.steps
+      .map((step) => `<li>${escape(step.text)}${step.screenshot
+        ? `<div class="shot"><b>Screenshot ${escape(step.screenshot.id)}</b> — ${escape(step.screenshot.caption)}</div>`
+        : ""}</li>`)
+      .join("")}</ol>`;
+    const notes = entry.notes.length === 0 ? "" : `<div class="note">${entry.notes.map((note) => `<p>${escape(note)}</p>`).join("")}</div>`;
+    return `<section id="${escape(entry.id)}"><h3>${escape(entry.title)}</h3><p>${escape(entry.intro)}</p>${steps}${notes}</section>`;
+  };
+  const parts = ordered
+    .map((part, index) => `<h2 id="part-${index + 1}">Part ${index + 1}: ${escape(part.title)}</h2>\n${part.sections.map(section).join("\n")}`)
+    .join("\n");
+  const diagrams = value.diagrams.length === 0 ? "" : `<h2>How it works</h2>\n${value.diagrams
+    .map((diagram) => `<h3>${escape(diagram.title)}</h3><div class="diagram"><pre class="mermaid">${escape(diagram.mermaid)}</pre></div>`)
+    .join("\n")}`;
+  const limitations = `<h2>Known limitations</h2>\n${list(value.knownLimitations.map((entry) => entry.text))}`;
+  const about = `<h2>About this guide</h2>\n<p>${escape(value.summary)}</p>\n${table(["Source", "Package", "Path"], value.sources.map((source) => [
+    source.kind.replace(/_/g, " "), source.packageId ?? "", source.path,
+  ]))}\n<p>Every button, menu item, field and setting named in this guide was checked on ${escape(value.target.instanceAlias)} (${value.instanceChecks.length} read-only checks). Screenshot boxes mark where a screenshot belongs.</p>`;
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>${escape(value.title)}</title>
+<style>body{font-family:Segoe UI,Arial,sans-serif;max-width:980px;margin:2rem auto;padding:0 1.25rem;color:#1f2328;line-height:1.55}h1{font-size:2rem;margin-bottom:.2rem}h2{border-bottom:1px solid #d0d7de;padding-bottom:.3rem;margin-top:2.2rem}h3{margin-top:1.6rem}.meta{color:#57606a}nav{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:.5rem 1.25rem}nav ol{margin:.25rem 0}.steps li{margin:.35rem 0}.shot{border:2px dashed #9aa5b1;border-radius:6px;background:#fafbfc;color:#57606a;padding:1.4rem .75rem;margin:.5rem 0;text-align:center;font-size:.9rem}.note{background:#fff8e6;border-left:4px solid #d4a72c;padding:.4rem .8rem;margin:.6rem 0}.diagram{border:1px solid #d0d7de;border-radius:6px;padding:.75rem;overflow:auto}pre.mermaid{text-align:center}table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border:1px solid #d0d7de;padding:.3rem .5rem;text-align:left}th{background:#f6f8fa}</style>
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: 'neutral' });</script>
+</head><body>
+<h1>${escape(value.title)}</h1>
+<p class="meta">${escape(value.target.application)} · version ${escape(value.target.version)} · ${escape(value.target.instanceAlias)}</p>
+<nav><b>Contents</b><ol>${toc}<li><a href="#limits">Known limitations</a></li></ol></nav>
+${diagrams}
+${parts}
+<div id="limits">${limitations}</div>
+${about}
+</body></html>
+`;
+}
+
 export function renderReportFile(jsonPath: string): string {
   const raw = JSON.parse(readFileSync(resolve(jsonPath), "utf8")) as { packageType?: string };
+  if (raw.packageType === "user_guide") {
+    const value = userGuidePackageSchema.parse(raw);
+    writeFileSync(value.artifacts.html, renderUserGuideHtml(value));
+    return value.artifacts.html;
+  }
   if (raw.packageType === "backlog") {
     const value = backlogPackageSchema.parse(raw);
     writeFileSync(value.artifacts.html, renderBacklogHtml(value));
@@ -333,7 +382,7 @@ export function renderReportFile(jsonPath: string): string {
 if (isDirectExecution(import.meta.url, process.argv[1])) {
   const path = process.argv[2];
   try {
-    if (!path) throw new Error("Usage: npm run report:render -- <code-implementation-vNNN.json | code-review-vNNN.json | backlog-vNNN.json>");
+    if (!path) throw new Error("Usage: npm run report:render -- <code-implementation-vNNN.json | code-review-vNNN.json | backlog-vNNN.json | user-guide-vNNN.json>");
     process.stdout.write(`Rendered ${renderReportFile(path)}\n`);
   } catch (error) {
     process.stderr.write(`Cannot render report: ${error instanceof Error ? error.message : String(error)}\n`);

@@ -3654,3 +3654,159 @@ export const backlogPackageSchema = z
     }
   });
 export type BacklogPackage = z.infer<typeof backlogPackageSchema>;
+
+// ---------------------------------------------------------------------------
+// User guide: how to use and administer the delivered capability, written from
+// the other agents' artifacts and checked read-only against the instance.
+
+export const USER_GUIDE_SOURCE_KINDS = [
+  "story_draft", "technical_design", "code_implementation", "completion_report", "research", "owner_decisions",
+] as const;
+export const USER_GUIDE_AUDIENCES = ["end_user", "admin"] as const;
+export const USER_GUIDE_UI_KINDS = [
+  "module", "ui_action", "field", "property", "notification", "role", "table",
+  "business_rule", "scheduled_job", "user", "event", "client_script",
+] as const;
+export const USER_GUIDE_REFERENCE_KINDS = [
+  "story", "design_decision", "owner_decision", "research_finding", "instance_check", "known_limitation",
+] as const;
+
+const userGuideIdSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/);
+
+const userGuideSectionSchema = z
+  .object({
+    id: userGuideIdSchema,
+    title: z.string().min(1).max(200),
+    intro: z.string().min(1).max(5_000),
+    steps: z
+      .array(
+        z
+          .object({
+            text: z.string().min(1).max(2_000),
+            screenshot: z.object({ id: userGuideIdSchema, caption: z.string().min(1).max(300) }).strict().optional(),
+          })
+          .strict(),
+      )
+      .default([]),
+    notes: z.array(z.string().min(1).max(2_000)).default([]),
+    uiRefs: z
+      .array(
+        z
+          .object({ kind: z.enum(USER_GUIDE_UI_KINDS), name: z.string().min(1).max(200), checkId: userGuideIdSchema })
+          .strict(),
+      )
+      .default([]),
+    references: z
+      .array(z.object({ kind: z.enum(USER_GUIDE_REFERENCE_KINDS), id: z.string().min(1).max(200) }).strict())
+      .min(1),
+  })
+  .strict();
+
+export const userGuidePackageSchema = z
+  .object({
+    contractVersion: z.literal(ASSISTED_CONTRACT_VERSION),
+    packageType: z.literal("user_guide"),
+    packageId: z.string().min(1),
+    title: z.string().min(1),
+    summary: z.string().min(1),
+    artifacts: assistedArtifactPairSchema,
+    target: z
+      .object({
+        application: z.string().min(1),
+        scope: z.string().min(1),
+        instanceAlias: z.string().min(1),
+        version: z.string().min(1),
+      })
+      .strict(),
+    sources: z
+      .array(
+        z
+          .object({
+            kind: z.enum(USER_GUIDE_SOURCE_KINDS),
+            path: filePathSchema.max(4_096),
+            packageId: z.string().min(1).optional(),
+            sha256: sha256Schema,
+          })
+          .strict(),
+      )
+      .min(1),
+    parts: z
+      .array(
+        z
+          .object({ audience: z.enum(USER_GUIDE_AUDIENCES), title: z.string().min(1).max(200), sections: z.array(userGuideSectionSchema).min(1) })
+          .strict(),
+      )
+      .length(2),
+    diagrams: z
+      .array(z.object({ id: userGuideIdSchema, title: z.string().min(1).max(200), mermaid: z.string().min(1).max(20_000) }).strict())
+      .default([]),
+    featureCoverage: z
+      .array(
+        z
+          .object({
+            storyId: z.string().min(1),
+            sectionIds: z.array(userGuideIdSchema).default([]),
+            notCoveredReason: z.string().min(1).max(2_000).optional(),
+          })
+          .strict(),
+      )
+      .min(1),
+    // An owner decision can defer work a report calls implemented, or confirm work it calls partial.
+    storyStatusOverrides: z
+      .array(
+        z
+          .object({ storyId: z.string().min(1), status: z.enum(["implemented", "deferred"]), ownerDecisionId: z.string().min(1), note: z.string().min(1).max(2_000) })
+          .strict(),
+      )
+      .default([]),
+    knownLimitations: z.array(z.object({ id: z.string().min(1).max(200), text: z.string().min(1).max(5_000) }).strict()).default([]),
+    instanceChecks: z
+      .array(z.object({ id: userGuideIdSchema, query: z.string().min(1).max(2_000), result: z.string().min(1).max(5_000) }).strict())
+      .min(1),
+    questions: z.array(z.object({ id: z.string().min(1).max(200), text: z.string().min(1).max(5_000) }).strict()).default([]),
+    assumptions: z.array(z.object({ id: z.string().min(1).max(200), text: z.string().min(1).max(5_000) }).strict()).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const issue = (path: (string | number)[], message: string): void => {
+      context.addIssue({ code: "custom", path, message });
+    };
+    const audiences = value.parts.map((part) => part.audience);
+    if (!audiences.includes("end_user") || !audiences.includes("admin")) {
+      issue(["parts"], "A user guide has one end_user part and one admin part.");
+    }
+    const sectionIds = new Set<string>();
+    const screenshotIds = new Set<string>();
+    const checkIds = new Set(value.instanceChecks.map((check) => check.id));
+    if (checkIds.size !== value.instanceChecks.length) issue(["instanceChecks"], "Instance check ids must be unique.");
+    value.parts.forEach((part, partIndex) => {
+      part.sections.forEach((section, sectionIndex) => {
+        const at = ["parts", partIndex, "sections", sectionIndex];
+        if (sectionIds.has(section.id)) issue([...at, "id"], `Duplicate section id '${section.id}'.`);
+        sectionIds.add(section.id);
+        section.steps.forEach((step, stepIndex) => {
+          if (!step.screenshot) return;
+          if (screenshotIds.has(step.screenshot.id)) issue([...at, "steps", stepIndex, "screenshot", "id"], `Duplicate screenshot id '${step.screenshot.id}'.`);
+          screenshotIds.add(step.screenshot.id);
+        });
+        section.uiRefs.forEach((ref, refIndex) => {
+          if (!checkIds.has(ref.checkId)) {
+            issue([...at, "uiRefs", refIndex, "checkId"], `'${ref.name}' cites instance check '${ref.checkId}', which is not recorded.`);
+          }
+        });
+      });
+    });
+    const covered = new Set<string>();
+    value.featureCoverage.forEach((entry, index) => {
+      if (covered.has(entry.storyId)) issue(["featureCoverage", index, "storyId"], `Duplicate coverage for '${entry.storyId}'.`);
+      covered.add(entry.storyId);
+      if (entry.sectionIds.length === 0 && !entry.notCoveredReason) {
+        issue(["featureCoverage", index], `Story ${entry.storyId} needs guide sections or a reason it is not covered.`);
+      }
+      for (const sectionId of entry.sectionIds) {
+        if (!sectionIds.has(sectionId)) issue(["featureCoverage", index, "sectionIds"], `Unknown section '${sectionId}'.`);
+      }
+    });
+    if (new Set(value.diagrams.map((diagram) => diagram.id)).size !== value.diagrams.length) issue(["diagrams"], "Diagram ids must be unique.");
+  });
+export type UserGuidePackage = z.infer<typeof userGuidePackageSchema>;

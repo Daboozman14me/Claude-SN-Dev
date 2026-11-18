@@ -33,6 +33,7 @@ const EXPECTED_AGENTS = [
   "assisted-delivery-code-review",
   "assisted-delivery-code-writer",
   "assisted-delivery-backlog",
+  "assisted-delivery-user-guide",
   "assisted-delivery-supervisor",
 ];
 
@@ -66,10 +67,10 @@ test("specialists hold no Agent tool and the supervisor holds no Write tool", ()
   }
 });
 
-test("only research, code review, code writer, backlog, and scaffolding carry ServiceNow SDK skills", () => {
+test("only research, code review, code writer, backlog, scaffolding, and user guide carry ServiceNow SDK skills", () => {
   const research = readAgent("assisted-delivery-research");
   assert.match(research, /^skills: application-audit, servicenow-sdk:now-sdk$/m);
-  const sdkOnly = ["assisted-delivery-code-review", "assisted-delivery-code-writer", "assisted-delivery-backlog", "assisted-delivery-scaffolding"];
+  const sdkOnly = ["assisted-delivery-code-review", "assisted-delivery-code-writer", "assisted-delivery-backlog", "assisted-delivery-scaffolding", "assisted-delivery-user-guide"];
   for (const name of sdkOnly) {
     assert.match(readAgent(name), /^skills: servicenow-sdk:now-sdk$/m);
   }
@@ -206,8 +207,23 @@ test("backlog agent never writes to ServiceNow and marks work Complete only on e
   assert.match(agent, /Import\s+XML/);
 });
 
+test("user guide agent describes only delivered work and checks every name it prints", () => {
+  const agent = readAgent("assisted-delivery-user-guide");
+  assert.match(agent, /^permissionMode: bypassPermissions$/m);
+  assert.match(agent, /\*\*Describe only delivered work\.\*\*/);
+  assert.match(agent, /\*\*Check every name you print\.\*\*/);
+  assert.match(agent, /\*\*Never write to ServiceNow\.\*\*/);
+  assert.match(agent, /\*\*Never describe a feature that was not delivered\*\*/);
+  assert.match(agent, /Part 1 — end users/);
+  assert.match(agent, /Part 2 — admins/);
+  assert.match(agent, /`screenshot` placeholder/);
+  assert.match(agent, /validate-assisted-user-guide\.ts/);
+});
+
 test("supervisor routes the complete assisted workflow", () => {
   const agent = readAgent("assisted-delivery-supervisor");
+  assert.match(agent, /assisted-delivery-user-guide/);
+  assert.match(agent, /A guide describes only\s+delivered work/);
   assert.match(agent, /assisted-delivery-research/);
   assert.match(agent, /assisted-delivery-solution-advisor/);
   assert.match(agent, /assisted-delivery-technical-design/);
@@ -219,7 +235,7 @@ test("supervisor routes the complete assisted workflow", () => {
   assert.match(agent, /assisted-delivery-code-review/);
   assert.match(agent, /assisted-delivery-code-writer/);
   assert.match(agent, /assisted-delivery-backlog/);
-  assert.match(agent, /eleven specialists above/);
+  assert.match(agent, /twelve specialists above/);
   assert.match(agent, /\*\*Read the recorded setup first\.\*\*/);
   assert.match(agent, /a recorded answer is a proposal to\s+confirm, not an assumption/);
   assert.match(agent, /Pass the recorded `setup\.agile` answers/);
