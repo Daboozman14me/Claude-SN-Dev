@@ -207,6 +207,18 @@ test("backlog agent never writes to ServiceNow and marks work Complete only on e
   assert.match(agent, /Import\s+XML/);
 });
 
+test("code writer packages a reviewed Fluent change as a delta update set and stops on UI edits", () => {
+  const agent = readAgent("assisted-delivery-code-writer");
+  assert.match(agent, /## Package mode: delta update set \(Fluent\)/);
+  assert.match(agent, /You edit no source in this mode/);
+  assert.match(agent, /\*\*Mixed-mode precheck\*\*/);
+  assert.match(agent, /`changed_on_instance` \(someone edited it in the UI since\s+the baseline\)/);
+  assert.match(agent, /Never import, preview, or commit the update set yourself\./);
+  const supervisor = readAgent("assisted-delivery-supervisor");
+  assert.match(supervisor, /\*\*When the recorded `setup\.deploy\.method`\s+is `update_set_import`\*\*/);
+  assert.match(supervisor, /\*\*package mode\*\* to build a \*\*delta update set\*\*/);
+});
+
 test("user guide agent describes only delivered work and checks every name it prints", () => {
   const agent = readAgent("assisted-delivery-user-guide");
   assert.match(agent, /^permissionMode: bypassPermissions$/m);

@@ -3810,3 +3810,91 @@ export const userGuidePackageSchema = z
     if (new Set(value.diagrams.map((diagram) => diagram.id)).size !== value.diagrams.length) issue(["diagrams"], "Diagram ids must be unique.");
   });
 export type UserGuidePackage = z.infer<typeof userGuidePackageSchema>;
+
+// ---------------------------------------------------------------------------
+// Update set delta: only what changed between the version on a target instance
+// and the new version of a Fluent app, packaged as an importable update set, with
+// a read-only precheck that the target really is at the baseline (mixed mode).
+
+export const DELTA_CHANGES = ["added", "changed", "deleted"] as const;
+export const DELTA_PRECHECK_STATUSES = [
+  "absent", "unexpected_present", "matches_baseline", "already_applied", "changed_on_instance", "not_compared",
+] as const;
+const DELTA_BLOCKING = new Set(["unexpected_present", "changed_on_instance"]);
+const gitCommitSchema = z.string().regex(/^[0-9a-f]{40}$/);
+
+export const updateSetDeltaPackageSchema = z
+  .object({
+    contractVersion: z.literal(ASSISTED_CONTRACT_VERSION),
+    packageType: z.literal("update_set_delta"),
+    packageId: z.string().min(1),
+    title: z.string().min(1),
+    summary: z.string().min(1),
+    artifacts: assistedArtifactPairSchema,
+    target: z
+      .object({ application: z.string().min(1), scope: z.string().min(1), scopeSysId: sysIdSchema, instanceAlias: z.string().min(1) })
+      .strict(),
+    project: filePathSchema.max(4_096),
+    from: z.object({ ref: z.string().min(1), commit: gitCommitSchema, version: z.string().min(1) }).strict(),
+    to: z.object({ ref: z.string().min(1), commit: gitCommitSchema, version: z.string().min(1) }).strict(),
+    includeDemo: z.boolean().default(false),
+    timestamp: z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
+    builds: z.object({ directory: filePathSchema.max(4_096), fromSha: sha256Schema, toSha: sha256Schema }).strict(),
+    entries: z
+      .array(
+        z
+          .object({
+            name: z.string().min(1),
+            folder: z.enum(["scope", "dictionary", "author_elective_update", "update", "unload.demo"]),
+            table: z.string().min(1),
+            sysId: sysIdSchema.optional(),
+            change: z.enum(DELTA_CHANGES),
+            fieldsChanged: z.array(z.string().min(1)).default([]),
+          })
+          .strict(),
+      )
+      .default([]),
+    updateSet: z
+      .object({ name: z.string().min(1), path: filePathSchema.max(4_096), sha256: sha256Schema, entryCount: z.number().int().min(0) })
+      .strict(),
+    precheck: z
+      .array(
+        z
+          .object({
+            name: z.string().min(1),
+            status: z.enum(DELTA_PRECHECK_STATUSES),
+            fields: z.array(z.string().min(1)).default([]),
+            changedBy: z.string().min(1).optional(),
+            changedOn: z.string().min(1).optional(),
+            approvedOverwrite: z.string().min(1).max(5_000).optional(),
+          })
+          .strict(),
+      )
+      .default([]),
+    verification: z
+      .array(z.object({ name: z.string().min(1), status: z.enum(DELTA_PRECHECK_STATUSES), fields: z.array(z.string()).default([]) }).strict())
+      .default([]),
+    warnings: z.array(z.string().min(1)).default([]),
+    questions: z.array(z.object({ id: z.string().min(1).max(200), text: z.string().min(1).max(5_000) }).strict()).default([]),
+    limitations: z.array(z.object({ id: z.string().min(1).max(200), text: z.string().min(1).max(5_000) }).strict()).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const issue = (path: (string | number)[], message: string): void => {
+      context.addIssue({ code: "custom", path, message });
+    };
+    const names = new Set<string>();
+    value.entries.forEach((entry, index) => {
+      if (names.has(entry.name)) issue(["entries", index, "name"], `Duplicate entry '${entry.name}'.`);
+      names.add(entry.name);
+    });
+    if (value.updateSet.entryCount !== value.entries.length) issue(["updateSet", "entryCount"], "Entry count does not match the entries.");
+    value.precheck.forEach((check, index) => {
+      if (!names.has(check.name)) issue(["precheck", index, "name"], `Precheck names '${check.name}', which is not in the delta.`);
+      if (DELTA_BLOCKING.has(check.status) && !check.approvedOverwrite) {
+        issue(["precheck", index, "approvedOverwrite"], `'${check.name}' is ${check.status.replace(/_/g, " ")} on the target; it needs the owner's approval or a rebuilt delta.`);
+      }
+    });
+    if (value.from.commit === value.to.commit) issue(["to", "commit"], "From and to are the same commit; there is no delta.");
+  });
+export type UpdateSetDeltaPackage = z.infer<typeof updateSetDeltaPackageSchema>;

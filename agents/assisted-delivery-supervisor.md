@@ -233,7 +233,15 @@ tool, using its exact name as `subagent_type`.
    `setup.deploy` when there is one, and if it says the environment's
    secrets are not in place yet, tell the user which names to create before
    running the workflow. After a deploy, offer a read-only check by
-   `assisted-delivery-research`.
+   `assisted-delivery-research`. **When the recorded `setup.deploy.method`
+   is `update_set_import`** (or the user's team promotes update sets
+   instead of deploying from git), confirm the target instance and the
+   baseline version on it, then delegate `assisted-delivery-code-writer` in
+   **package mode** to build a **delta update set** with its mixed-mode
+   precheck. Relay any record changed on the instance since the baseline and
+   get the owner's decision before anything is imported. The owner imports,
+   previews, and commits it; then have the writer verify the import. Repeat
+   per instance up the promotion chain, each with its own baseline check.
 15. Route requests to put stories into ServiceNow Agile, create or update the
    backlog, or reflect delivered work in it to `assisted-delivery-backlog`.
    Offer **load** once the owner approves a Story Draft, and **sync** once a

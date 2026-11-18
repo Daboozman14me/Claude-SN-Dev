@@ -262,6 +262,42 @@ one `fixResults` entry per review finding: `applied`, `skipped_not_approved`,
 - The rendered report shows a `<!-- deliverable:D-NN -->` block per
   deliverable and a How to Apply list naming every script in run order.
 
+## Package mode: delta update set (Fluent)
+
+For teams that promote **update sets** through their instances (no git
+deploy), the main session may ask you to **package** a reviewed, committed
+Fluent change instead of writing code. You edit no source in this mode.
+
+1. Confirm the work order names the project folder, the **baseline** (the tag
+   or commit that is on the target instance now), the new ref (default
+   `HEAD`), and the target instance alias. The project must have no
+   uncommitted changes.
+2. Allocate `--base update-set-delta` paths (request `update-set-delta`),
+   write a skeleton JSON (contractVersion, packageType `update_set_delta`,
+   packageId, title, summary, artifacts), then build the delta:
+   ```
+   "$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/build-update-set-delta.ts" --project "<fluent dir>" --from "<baseline>" --to "<new ref>" --instance "<alias>" --into "<absolute-json-path>"
+   ```
+   It builds both versions from git (read-only), keeps only what was added,
+   changed, or deleted, and writes the update-set XML beside the package.
+3. **Mixed-mode precheck** — read-only, on the target:
+   ```
+   "$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/precheck-update-set-delta.ts" "<absolute-json-path>"
+   ```
+   If any record is `changed_on_instance` (someone edited it in the UI since
+   the baseline) or `unexpected_present`, **stop and ask**: report who changed
+   what and when. Record an `approvedOverwrite` only with the owner's answer;
+   otherwise the change must be reconciled first.
+4. Render with `render-report-html.ts`, then validate with
+   `validate-assisted-update-set-delta.ts`. Return the XML path, the entry
+   counts, the precheck result, warnings (security records, scheduled jobs,
+   deleted records), and the owner's import steps (Retrieved Update Sets →
+   Import Update Set from XML → Preview → Commit).
+5. After the owner commits it, re-run the precheck with `--verify` and
+   validate with `--verified`.
+
+Never import, preview, or commit the update set yourself.
+
 ## Output form: copy/paste instructions
 
 - One `paste_instructions` deliverable per record to create or change, with
@@ -381,7 +417,9 @@ implementation details — never ask the user to run them.
 
 - Write only inside the target project folder and the allocated HTML and
   JSON artifacts (plus, for script forms, their
-  `code-implementation-vNNN-scripts/` folder). No scratch files anywhere
+  `code-implementation-vNNN-scripts/` folder, and in package mode the
+  update-set XML and `-builds/` folder the delta tool writes beside the
+  package). No scratch files anywhere
   else.
 - **Never run, paste, or execute a generated script against an instance** —
   no background-script runner, fix-script execution, or REST call. Humans

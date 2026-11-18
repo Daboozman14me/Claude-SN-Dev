@@ -6,10 +6,12 @@ import {
   backlogPackageSchema,
   codeImplementationPackageSchema,
   codeReviewPackageSchema,
+  updateSetDeltaPackageSchema,
   userGuidePackageSchema,
   type BacklogPackage,
   type CodeImplementationPackage,
   type CodeReviewPackage,
+  type UpdateSetDeltaPackage,
   type UserGuidePackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
@@ -354,8 +356,42 @@ ${about}
 `;
 }
 
+export function renderUpdateSetDeltaHtml(value: UpdateSetDeltaPackage): string {
+  const checks = new Map(value.precheck.map((check) => [check.name, check]));
+  const verified = new Map(value.verification.map((check) => [check.name, check]));
+  const count = (change: string): number => value.entries.filter((entry) => entry.change === change).length;
+  return page(value.title, [
+    `<h2>Summary</h2>\n<p>${escape(value.summary)}</p>\n${table(["", ""], [
+      ["Application", `${value.target.application} (${value.target.scope})`],
+      ["From", `${value.from.version} · ${value.from.ref} · ${value.from.commit.slice(0, 10)}`],
+      ["To", `${value.to.version} · ${value.to.ref} · ${value.to.commit.slice(0, 10)}`],
+      ["Update set", value.updateSet.name],
+      ["Entries", `${value.entries.length} (added ${count("added")}, changed ${count("changed")}, deleted ${count("deleted")})`],
+      ["Target instance", value.target.instanceAlias],
+    ])}`,
+    `<h2>Entries</h2>\n${table(["Change", "Record", "Table", "Fields changed", "Precheck", "After import"], value.entries.map((entry) => [
+      entry.change, entry.name, entry.table, entry.fieldsChanged.join(", "),
+      checks.get(entry.name)?.status.replace(/_/g, " ") ?? "not run",
+      verified.get(entry.name)?.status.replace(/_/g, " ") ?? "",
+    ]))}`,
+    `<h2>Precheck</h2>\n<p>Before import, every record in the delta was read from ${escape(value.target.instanceAlias)} to confirm it is at the baseline version and that nobody changed it in the instance since.</p>\n${table(["Record", "Status", "Fields", "Changed by", "Changed on", "Owner approval"], value.precheck
+      .filter((check) => check.status !== "absent" && check.status !== "matches_baseline")
+      .map((check) => [check.name, check.status.replace(/_/g, " "), check.fields.join(", "), check.changedBy ?? "", check.changedOn ?? "", check.approvedOverwrite ?? ""]))}`,
+    `<h2>Import Steps</h2>\n<p>File: <code>${escape(value.updateSet.path)}</code> (sha256 ${escape(value.updateSet.sha256.slice(0, 16))}…)</p>
+<ol><li>On the target instance, open <b>System Update Sets → Retrieved Update Sets</b> and choose <b>Import Update Set from XML</b>.</li><li>Upload the file. "${escape(value.updateSet.name)}" appears as Loaded.</li><li>Open it and click <b>Preview Update Set</b>. Resolve any collision the preview reports with the developer who made it before going on.</li><li>Click <b>Commit Update Set</b>, then ask for the post-import verification.</li></ol>`,
+    `<h2>Warnings</h2>\n${list(value.warnings)}`,
+    `<h2>Questions</h2>\n${list(value.questions.map((question) => `${question.id}: ${question.text}`))}`,
+    limitationsSection(value.limitations),
+  ]);
+}
+
 export function renderReportFile(jsonPath: string): string {
   const raw = JSON.parse(readFileSync(resolve(jsonPath), "utf8")) as { packageType?: string };
+  if (raw.packageType === "update_set_delta") {
+    const value = updateSetDeltaPackageSchema.parse(raw);
+    writeFileSync(value.artifacts.html, renderUpdateSetDeltaHtml(value));
+    return value.artifacts.html;
+  }
   if (raw.packageType === "user_guide") {
     const value = userGuidePackageSchema.parse(raw);
     writeFileSync(value.artifacts.html, renderUserGuideHtml(value));
@@ -382,7 +418,7 @@ export function renderReportFile(jsonPath: string): string {
 if (isDirectExecution(import.meta.url, process.argv[1])) {
   const path = process.argv[2];
   try {
-    if (!path) throw new Error("Usage: npm run report:render -- <code-implementation-vNNN.json | code-review-vNNN.json | backlog-vNNN.json | user-guide-vNNN.json>");
+    if (!path) throw new Error("Usage: npm run report:render -- <code-implementation-vNNN.json | code-review-vNNN.json | backlog-vNNN.json | user-guide-vNNN.json | update-set-delta-vNNN.json>");
     process.stdout.write(`Rendered ${renderReportFile(path)}\n`);
   } catch (error) {
     process.stderr.write(`Cannot render report: ${error instanceof Error ? error.message : String(error)}\n`);

@@ -37,6 +37,10 @@ project artifacts (those live separately, outside this repo).
 - `docs/backlog-workflow.md` — loading approved stories into ServiceNow Agile,
   syncing delivered work after each deploy, the owner's XML import, and the
   read-only verification.
+- `docs/update-set-delta-workflow.md` — packaging a reviewed Fluent change as a
+  delta update set (only added/changed/deleted records) for teams that promote
+  update sets instead of deploying from git, with the read-only mixed-mode
+  precheck against the target instance.
 - `docs/user-guide-workflow.md` — the end-user and admin guide written after a
   verified deploy, describing only delivered work, with every printed name
   checked on the instance.
