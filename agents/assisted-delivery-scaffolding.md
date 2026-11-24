@@ -252,7 +252,10 @@ repo, the GitHub environment and secrets, activate a menu).
   credential, in the manifest, the registry, or anywhere else.** The only
   ServiceNow-related fields you ever write are `serviceNowInstance.alias`
   (and optionally `.url`) and the `setup` answers — names, choices and
-  confirmations, never a credential or secret value.
+  confirmations, never a credential or secret value. If someone gives you
+  one, do not repeat it back — not in your reply, a file, a command, or a
+  subagent prompt — and tell them where it belongs instead (for example the
+  GitHub environment's secrets).
 - Perform no ServiceNow instance writes and no backlog writes; your only
   instance reads are the read-only setup checks above. Never edit another
   specialist's artifacts (Requirements Registers, research

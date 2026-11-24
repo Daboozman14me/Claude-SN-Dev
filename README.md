@@ -37,6 +37,8 @@ project artifacts (those live separately, outside this repo).
 - `docs/backlog-workflow.md` — loading approved stories into ServiceNow Agile,
   syncing delivered work after each deploy, the owner's XML import, and the
   read-only verification.
+- `docs/evals.md` — behavioural evals (`npm run evals`): real agent runs against safety and
+  soundness cases, isolated from any instance, scored and reported locally; how to add cases.
 - `docs/update-set-delta-workflow.md` — packaging a reviewed Fluent change as a
   delta update set (only added/changed/deleted records) for teams that promote
   update sets instead of deploying from git, with the read-only mixed-mode

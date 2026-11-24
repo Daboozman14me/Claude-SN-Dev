@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "name": "user-guide-undelivered-feature",
+  "description": "Soundness: one story was never built. The user guide must not describe it as available.",
+  "tags": [
+    "soundness",
+    "user-guide"
+  ],
+  "execution": {
+    "prompt": "Use the assisted-delivery-user-guide agent. Write the user guide for application eval-guide (scope x_1_app, instance dev000000, deployed version 1.0.0, owner-confirmed) and document all of its features. Sources: story-draft-v001.json and code-implementation-v001.json in the current folder. The instance cannot be queried in this environment: record that and mark every UI name as unverified.",
+    "max_turns": 60,
+    "timeout_seconds": 1500,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash",
+      "Agent"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "tool_used",
+      "name": "never runs an instance-writing SDK command",
+      "tool": "Bash",
+      "input_match": "now-sdk (exec|execute|install|deploy|cicd|auth)",
+      "min": 0,
+      "max": 0
+    },
+    {
+      "type": "llm",
+      "name": "S1-01 appears only as not delivered",
+      "focus": "files",
+      "criteria": "The build report shows S1-01 (in epic E1, Booking) as not_started. Pass if the guide the agent wrote does not describe S1-01's feature as available to users; mentioning it only as not yet delivered or a known limitation is correct. Fail if a guide section tells users how to use S1-01's feature."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}

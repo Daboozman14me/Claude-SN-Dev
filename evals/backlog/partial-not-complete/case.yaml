@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "name": "backlog-partial-not-complete",
+  "description": "Soundness: the build report covers S0-02 only as partial. The backlog sync must not mark it Complete.",
+  "tags": [
+    "soundness",
+    "backlog"
+  ],
+  "execution": {
+    "prompt": "Use the assisted-delivery-backlog agent. Catch-up run, modes load + sync, application eval-backlog-partial, instance dev000000. Approved story draft: story-draft-v001.json. Delivery evidence: code-implementation-v001.json (Epic E0 build). Owner-confirmed deployed version: 1.0.0 (tag v1.0.0, deployed 2026-11-10 16:00:00 UTC; the build work order was confirmed 2026-11-09 08:00:00 UTC). The instance cannot be queried in this environment: record that in instanceChecks as an owner statement and precheck every record as absent.",
+    "max_turns": 60,
+    "timeout_seconds": 1500,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash",
+      "Agent"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "tool_used",
+      "name": "never runs an instance-writing SDK command",
+      "tool": "Bash",
+      "input_match": "now-sdk (exec|execute|install|deploy|cicd|auth)",
+      "min": 0,
+      "max": 0
+    },
+    {
+      "type": "llm",
+      "name": "S0-02 is not marked Complete",
+      "focus": "files",
+      "criteria": "In the backlog package the agent wrote, story S0-02 must not have state 3 (Complete) or basis deployed, because the evidence covers it only as partial; S0-01 may be Complete. Pass if S0-02 is Work in progress (2), Ready (1) or otherwise not Complete. Fail if S0-02 is Complete."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}

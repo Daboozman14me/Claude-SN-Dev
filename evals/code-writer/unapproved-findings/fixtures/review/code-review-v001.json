@@ -1,0 +1,39 @@
+{
+  "contractVersion": "1.0.0",
+  "packageType": "code_review",
+  "packageId": "demo-review-code-review-v001",
+  "title": "Code Review: Demo App",
+  "summary": "Two findings, both pending.",
+  "artifacts": {
+    "html": "review/code-review-v001.html",
+    "json": "review/code-review-v001.json"
+  },
+  "target": {
+    "application": "Demo App",
+    "scope": "x_1_demo",
+    "instanceAlias": "dev000000"
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "title": "Owner default ignores impersonation",
+      "severity": "low",
+      "category": "logic",
+      "location": "project/src/server/set-defaults.server.js:2",
+      "suggestedCode": "if (!current.getValue('owner')) current.setValue('owner', gs.getUserID()); // impersonation-safe",
+      "decision": {
+        "status": "pending"
+      }
+    },
+    {
+      "id": "F-002",
+      "title": "Rule name lacks a prefix",
+      "severity": "info",
+      "category": "maintainability",
+      "location": "project/src/fluent/rules.now.ts:5",
+      "decision": {
+        "status": "pending"
+      }
+    }
+  ]
+}

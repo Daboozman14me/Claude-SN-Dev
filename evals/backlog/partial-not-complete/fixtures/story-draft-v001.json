@@ -1,0 +1,159 @@
+{
+  "contractVersion": "1.0.0",
+  "packageType": "story_draft",
+  "packageId": "eval-backlog-partial-stories-v001",
+  "designBasis": {
+    "kind": "technical_design",
+    "path": "C:\\inputs\\technical-design-v001.json",
+    "packageId": "fixture-design-v001"
+  },
+  "title": "Fixture stories",
+  "artifacts": {
+    "html": "C:\\inputs\\story-draft-v001.html",
+    "json": "C:\\inputs\\story-draft-v001.json"
+  },
+  "sourceInventory": [
+    {
+      "path": "C:\\inputs\\technical-design-v001.md",
+      "supported": true,
+      "readable": true,
+      "included": true,
+      "format": "markdown",
+      "unitCount": 1,
+      "warnings": []
+    }
+  ],
+  "documents": [
+    {
+      "contractVersion": "1.0.0",
+      "id": "doc-1",
+      "title": "Objectives",
+      "format": "markdown",
+      "sourcePath": "C:\\inputs\\technical-design-v001.md",
+      "units": [
+        {
+          "id": "unit-1",
+          "type": "document_text",
+          "text": "Users book a room.",
+          "location": {
+            "kind": "file",
+            "path": "C:\\inputs\\technical-design-v001.md"
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "authoritativeDocumentIds": [
+    "doc-1"
+  ],
+  "citations": [
+    {
+      "id": "cite-1",
+      "documentId": "doc-1",
+      "unitId": "unit-1",
+      "location": {
+        "kind": "file",
+        "path": "C:\\inputs\\technical-design-v001.md"
+      },
+      "quote": "book a room"
+    }
+  ],
+  "epics": [
+    {
+      "id": "E0",
+      "title": "Foundation",
+      "objective": "Tables and roles.",
+      "storyIds": [
+        "S0-01",
+        "S0-02"
+      ],
+      "citationIds": [
+        "cite-1"
+      ]
+    },
+    {
+      "id": "E1",
+      "title": "Booking",
+      "objective": "Book rooms.",
+      "storyIds": [
+        "S1-01"
+      ],
+      "citationIds": [
+        "cite-1"
+      ]
+    }
+  ],
+  "stories": [
+    {
+      "id": "S0-01",
+      "title": "Story S0-01",
+      "userStory": "As a user I want S0-01.",
+      "description": "Implements S0-01.",
+      "citationIds": [
+        "cite-1"
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "S0-01-AC01",
+          "text": "Given a free room, when a user books it, then the booking is <confirmed> & saved.",
+          "citationIds": [
+            "cite-1"
+          ]
+        }
+      ],
+      "dependencyIds": [],
+      "assumptions": [],
+      "questions": []
+    },
+    {
+      "id": "S0-02",
+      "title": "Story S0-02",
+      "userStory": "As a user I want S0-02.",
+      "description": "Implements S0-02.",
+      "citationIds": [
+        "cite-1"
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "S0-02-AC01",
+          "text": "Given a free room, when a user books it, then the booking is <confirmed> & saved.",
+          "citationIds": [
+            "cite-1"
+          ]
+        }
+      ],
+      "dependencyIds": [
+        "S0-01"
+      ],
+      "assumptions": [],
+      "questions": []
+    },
+    {
+      "id": "S1-01",
+      "title": "Story S1-01",
+      "userStory": "As a user I want S1-01.",
+      "description": "Implements S1-01.",
+      "citationIds": [
+        "cite-1"
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "S1-01-AC01",
+          "text": "Given a free room, when a user books it, then the booking is <confirmed> & saved.",
+          "citationIds": [
+            "cite-1"
+          ]
+        }
+      ],
+      "dependencyIds": [
+        "S0-01"
+      ],
+      "assumptions": [],
+      "questions": []
+    }
+  ],
+  "assumptions": [],
+  "questions": [],
+  "warnings": []
+}

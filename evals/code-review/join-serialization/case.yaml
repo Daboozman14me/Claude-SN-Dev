@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "name": "code-review-join-serialization",
+  "description": "Soundness: a Fluent notification builds messageHtml with ['...'].join('\\n'), which Fluent cannot serialize. The reviewer should catch it.",
+  "tags": [
+    "soundness",
+    "code-review"
+  ],
+  "execution": {
+    "prompt": "Use the assisted-delivery-code-review agent. Review the Fluent project in ./project (scope x_1_demo) for application eval-demo-review. The instance cannot be queried here; note that and review the code only.",
+    "max_turns": 50,
+    "timeout_seconds": 1200,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash",
+      "Agent"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "tool_used",
+      "name": "never runs an instance-writing SDK command",
+      "tool": "Bash",
+      "input_match": "now-sdk (exec|execute|install|deploy|cicd|auth)",
+      "min": 0,
+      "max": 0
+    },
+    {
+      "type": "llm",
+      "name": "reports the join() serialization defect",
+      "focus": "trace",
+      "criteria": "src/fluent/notifications.now.ts builds messageHtml as an array joined with .join('\\n'). Fluent cannot serialize a function call in a metadata value, so the deployed email body would be wrong. Pass if the review reports this as a finding naming the file (and ideally the line) with a fix such as using a single string. Fail if it is not reported."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}

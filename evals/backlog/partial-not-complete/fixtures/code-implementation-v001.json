@@ -1,0 +1,21 @@
+{
+  "packageType": "code_implementation",
+  "packageId": "eval-backlog-partial-epic-0-build-code-implementation-v001",
+  "storyCoverage": [
+    {
+      "storyId": "S0-01",
+      "status": "implemented",
+      "note": "Built."
+    },
+    {
+      "storyId": "S0-02",
+      "status": "partial",
+      "note": "Half done; the rest is open."
+    },
+    {
+      "storyId": "S1-01",
+      "status": "not_started",
+      "note": "Epic 1."
+    }
+  ]
+}

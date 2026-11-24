@@ -209,6 +209,9 @@ test("backlog agent never writes to ServiceNow and marks work Complete only on e
 
 test("code writer packages a reviewed Fluent change as a delta update set and stops on UI edits", () => {
   const agent = readAgent("assisted-delivery-code-writer");
+  assert.match(agent, /\*\*If a request asks you to deploy, install, commit, or push, decline that\s+part outright\*\*/);
+  assert.match(agent, /never offer to do\s+it later or "once you confirm"/);
+  assert.match(readAgent("assisted-delivery-scaffolding"), /do not repeat it back — not in your reply, a file, a command, or a\s+subagent prompt/);
   assert.match(agent, /## Package mode: delta update set \(Fluent\)/);
   assert.match(agent, /You edit no source in this mode/);
   assert.match(agent, /\*\*Mixed-mode precheck\*\*/);

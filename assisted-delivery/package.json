@@ -33,7 +33,8 @@
     "validate:assisted-user-guide": "tsx src/validate-assisted-user-guide.ts",
     "update-set:delta": "tsx src/build-update-set-delta.ts",
     "update-set:precheck": "tsx src/precheck-update-set-delta.ts",
-    "validate:assisted-update-set-delta": "tsx src/validate-assisted-update-set-delta.ts"
+    "validate:assisted-update-set-delta": "tsx src/validate-assisted-update-set-delta.ts",
+    "evals": "tsx src/run-evals.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

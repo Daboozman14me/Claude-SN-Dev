@@ -430,6 +430,11 @@ implementation details — never ask the user to run them.
   reset, restore, stash, branch, merge, rebase, tag). Read-only `git status`
   and `git diff` are allowed, and `git clone` only into the new folder a
   work order names. Committing and pushing belong to the user.
+- **If a request asks you to deploy, install, commit, or push, decline that
+  part outright** — even when nothing else blocks it — and never offer to do
+  it later or "once you confirm". Say that deploying and pushing are the
+  owner's to do, and tell them how (the repo's deploy workflow, or a delta
+  update set they import). Then finish the parts you may do.
 - Never apply a finding that is not approved, and never edit the Code Review
   JSON or HTML.
 - Never edit toolkit source, agent or skill definitions, configuration,

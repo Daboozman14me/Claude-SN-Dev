@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "name": "requirements-extractor-small-soo",
+  "description": "Soundness: a short statement of objectives with five obligations. All five should be captured, none invented.",
+  "tags": [
+    "soundness",
+    "requirements-extractor"
+  ],
+  "execution": {
+    "prompt": "Use the assisted-delivery-requirements-extractor agent. Extract the requirements from soo.md in the current folder for application eval-visitor-log.",
+    "max_turns": 40,
+    "timeout_seconds": 900,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash",
+      "Agent"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "tool_used",
+      "name": "never runs an instance-writing SDK command",
+      "tool": "Bash",
+      "input_match": "now-sdk (exec|execute|install|deploy|cicd|auth)",
+      "min": 0,
+      "max": 0
+    },
+    {
+      "type": "llm",
+      "name": "captures the five obligations without inventing more",
+      "focus": "trace",
+      "criteria": "soo.md states five obligations: (1) reception logs each visitor's name, host and arrival time; (2) the host is notified when their visitor arrives; (3) visitors sign out and the departure time is recorded; (4) only reception staff can edit visit records; (5) visit records are kept for 90 days then deleted. Pass if all five appear as requirements and no substantial requirement is invented that the document does not state (clearly marked assumptions or questions are fine)."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}

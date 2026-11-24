@@ -1,0 +1,8 @@
+{
+  "name": "servicenow-assisted-delivery",
+  "version": "1.0.0",
+  "description": "ServiceNow Assisted Delivery: a supervisor and specialist agents that take a ServiceNow application from source documents to a delivered, documented and tracked capability, with a person approving every step.",
+  "experimental": {
+    "evals": "evals"
+  }
+}

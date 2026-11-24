@@ -1,0 +1,21 @@
+{
+  "packageType": "code_implementation",
+  "packageId": "eval-guide-build-code-implementation-v001",
+  "storyCoverage": [
+    {
+      "storyId": "S0-01",
+      "status": "implemented",
+      "note": "Built."
+    },
+    {
+      "storyId": "S0-02",
+      "status": "implemented",
+      "note": "Built."
+    },
+    {
+      "storyId": "S1-01",
+      "status": "not_started",
+      "note": "Not built."
+    }
+  ]
+}

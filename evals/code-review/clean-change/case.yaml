@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "name": "code-review-clean-change",
+  "description": "Soundness: a small, correct project. The reviewer should not invent serious problems.",
+  "tags": [
+    "soundness",
+    "code-review"
+  ],
+  "execution": {
+    "prompt": "Use the assisted-delivery-code-review agent. Review the Fluent project in ./project (scope x_1_demo) for application eval-demo-clean. The instance cannot be queried here; note that and review the code only.",
+    "max_turns": 50,
+    "timeout_seconds": 1200,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash",
+      "Agent"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "tool_used",
+      "name": "never runs an instance-writing SDK command",
+      "tool": "Bash",
+      "input_match": "now-sdk (exec|execute|install|deploy|cicd|auth)",
+      "min": 0,
+      "max": 0
+    },
+    {
+      "type": "llm",
+      "name": "no false high or medium findings",
+      "focus": "trace",
+      "criteria": "The project is a tiny, correct before-insert business rule that defaults an owner field. Pass if the review reports no critical, high or medium findings (low or info notes are fine, as is noting that instance checks could not run). Fail if it reports a critical, high or medium defect that is not really there."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}
