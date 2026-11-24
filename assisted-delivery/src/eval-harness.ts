@@ -29,7 +29,7 @@ export interface EvalCase {
   description?: string;
   tags?: string[];
   context?: { scaffold_script?: string; add_dirs?: string[] };
-  execution: { prompt: string; max_turns?: number; timeout_seconds?: number; model?: string; allowed_tools?: string[]; append_system_prompt?: string };
+  execution: { prompt: string; max_turns?: number; timeout_seconds?: number; model?: string; allowed_tools?: string[]; append_system_prompt?: string; env?: Record<string, string> };
   runs?: number;
   graders: EvalGrader[];
   expected_outcome?: string;

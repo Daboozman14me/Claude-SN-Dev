@@ -90,7 +90,8 @@ test("each eval session gets a throwaway home with only the login settings, and 
   writeFileSync(settings, JSON.stringify({ apiKeyHelper: "C:\\helper.exe", env: { ANTHROPIC_BASE_URL: "https://gateway" }, permissions: { allow: ["Edit(C:\\real\\**)"] } }));
   const session = prepareSession("t", toolkit, settings, join(scratch, "no-creds"));
   const copied = JSON.parse(readFileSync(join(session.home, ".claude", "settings.json"), "utf8"));
-  assert.deepEqual(Object.keys(copied).sort(), ["apiKeyHelper", "env"], "no permission rules carried over");
+  assert.deepEqual(Object.keys(copied).sort(), ["apiKeyHelper", "env", "hooks"], "no permission rules carried over");
+  assert.match(JSON.stringify(copied.hooks), /guard.mjs/, "the guard hook runs in every eval session");
   assert.equal(session.env.USERPROFILE, session.home);
   assert.equal(session.env.SN_SDK_CREDENTIALS_DIR, join(scratch, "no-creds"));
   assert.ok(existsSync(join(session.home, ".claude", "assisted-delivery", "keep.txt")), "the toolkit is reachable from the fake home");

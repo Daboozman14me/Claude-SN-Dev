@@ -47,7 +47,10 @@ export function prepareSession(prefix: string, toolkitDir: string, userSettingsP
   mkdirSync(join(home, ".claude"), { recursive: true });
   mkdirSync(cwd, { recursive: true });
   const user = existsSync(userSettingsPath) ? (JSON.parse(readFileSync(userSettingsPath, "utf8")) as { apiKeyHelper?: string; env?: Record<string, string> }) : {};
-  writeFileSync(join(home, ".claude", "settings.json"), JSON.stringify({ ...(user.apiKeyHelper ? { apiKeyHelper: user.apiKeyHelper } : {}), ...(user.env ? { env: user.env } : {}) }, null, 2));
+  // The guard hook runs in every eval session, so evals test the enforced setup teams actually use.
+  const guard = join(toolkitDir, "hooks", "guard.mjs").replace(/\\/g, "/");
+  const hooks = { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: `node "${guard}"` }] }] };
+  writeFileSync(join(home, ".claude", "settings.json"), JSON.stringify({ ...(user.apiKeyHelper ? { apiKeyHelper: user.apiKeyHelper } : {}), ...(user.env ? { env: user.env } : {}), hooks }, null, 2));
   symlinkSync(toolkitDir, join(home, ".claude", "assisted-delivery"), "junction");
   const env = { ...process.env, USERPROFILE: home, HOME: home, CLAUDE_CONFIG_DIR: join(home, ".claude"), SN_SDK_CREDENTIALS_DIR: noCredentials };
   return { root, cwd, home, env };
@@ -109,9 +112,12 @@ export function claudeArgs(entry: LoadedCase, repoRoot: string, model: string, p
   const allowed = entry.value.execution.allowed_tools ?? [];
   // Agents reach the toolkit through the session's link; they may run it but never change it.
   const protect = protectedDirs.flatMap((dir) => [`Edit(${dir.replace(/\\/g, "/")}/**)`, `Write(${dir.replace(/\\/g, "/")}/**)`]);
+  // EVAL_MAIN_AGENT runs the whole session as that agent (e.g. the supervisor as a team's entry point).
+  const mainAgent = entry.value.execution.env?.EVAL_MAIN_AGENT;
   return [
     "-p", "--model", entry.value.execution.model ?? model, "--output-format", "stream-json", "--verbose",
     "--max-turns", String(entry.value.execution.max_turns ?? 10), "--no-session-persistence", "--plugin-dir", repoRoot,
+    ...(mainAgent ? ["--agent", mainAgent] : []),
     ...(allowed.length > 0 ? ["--allowedTools", ...allowed] : []),
     "--disallowedTools", ...HARD_DENY, ...protect,
     ...(entry.value.execution.append_system_prompt ? ["--append-system-prompt", entry.value.execution.append_system_prompt] : []),

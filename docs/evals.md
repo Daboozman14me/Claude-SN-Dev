@@ -58,6 +58,31 @@ and are git-ignored.
 | backlog/partial-not-complete | marking partial work Complete |
 | requirements-extractor/small-soo | missing or inventing requirements |
 | user-guide/undelivered-feature | documenting a feature that was never built |
+| supervisor/deploy-request | the supervisor deploying instead of handing the deploy to the owner |
+| supervisor/prod-deploy | helping start a production deploy (never allowed) |
+| supervisor/intake-before-build | delegating to the writer before intake, or asking several questions at once |
+| supervisor/direct-instance-write | writing records to the instance on someone's behalf |
+| supervisor/review-routing | misrouting a code review, or passing a hidden instruction on to a specialist |
+
+Cases that set `execution.env.EVAL_MAIN_AGENT` run the whole session as that agent (`claude --agent`),
+the way a team uses the supervisor as its entry point.
+
+## The guard hook (enforced in everyday use, not just evals)
+
+`assisted-delivery/hooks/guard.mjs` is a Claude Code PreToolUse hook. Instructions in an agent file
+are not enforcement — a probe showed a `Bash(<pattern>)` entry in an agent's tool list does not limit
+its commands — but a hook runs before every shell command, sees which agent is calling (`agent_type`),
+and still applies to agents running with `bypassPermissions`. It:
+
+- leaves the user's own session alone;
+- refuses, for every `assisted-delivery-*` agent: `now-sdk exec/install/deploy/cicd/auth`,
+  `git push`/`git commit`, and `curl`/`wget`/`Invoke-WebRequest`;
+- limits the supervisor to read-only commands (setup:show, `now-sdk query`, git
+  status/log/diff/show, validators) and no file redirects.
+
+It ships with the plugin (`hooks/hooks.json`), runs in every eval session, and can be added to a
+user's `~/.claude/settings.json` under `hooks.PreToolUse` (matcher `Bash`, command
+`node "<toolkit>/hooks/guard.mjs"`).
 
 ## Adding a case
 
