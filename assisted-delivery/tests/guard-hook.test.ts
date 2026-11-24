@@ -30,6 +30,11 @@ test("no assisted-delivery agent may write to an instance, publish, or call the 
     assert.equal(allowed("powershell Invoke-WebRequest https://x", agent), false, `${agent}: iwr`);
     assert.equal(allowed("npx now-sdk query sys_app -q scope=x_1 -f version -o json", agent), true, `${agent}: query`);
     assert.equal(allowed("npm run build", agent), true, `${agent}: build`);
+    assert.equal(allowed("npx @servicenow/sdk install --auth dev", agent), false, `${agent}: install, package spelling`);
+    assert.equal(allowed("npx @servicenow/sdk exec -f x.js", agent), false, `${agent}: exec, package spelling`);
+    assert.equal(allowed("npx now-sdk auth --list", agent), true, `${agent}: listing aliases`);
+    assert.equal(allowed("npx @servicenow/sdk auth --list 2>&1", agent), true, `${agent}: listing aliases`);
+    assert.equal(allowed("npx now-sdk auth --list && npx now-sdk install", agent), false, `${agent}: list then install`);
   }
 });
 
@@ -51,6 +56,33 @@ test("the supervisor runs only read-only commands", () => {
     "git checkout main",
     "cd C:/repo && npm run evals",
   ]) assert.equal(allowed(blocked, supervisor), false, blocked);
+});
+
+test("instance reads name their fields and never touch secrets", () => {
+  const research = "assisted-delivery-research";
+  for (const ok of [
+    "npx now-sdk query sys_script -q \"sys_scope.scope=x_1_app\" -f name,script,when,order -o json",
+    "npx @servicenow/sdk query sys_app -q scope=x_1_app -f \"name,version\" -o json",
+    "npx now-sdk query sys_properties -q \"name STARTSWITHx_1_app^type!=password^type!=password2\" -f name,value,type -o json",
+    "npx now-sdk query sys_properties -q nameSTARTSWITHx_1_app -f name,type,description -o json",
+    "npx now-sdk query --help",
+  ]) assert.equal(allowed(ok, research), true, ok);
+  for (const blocked of [
+    "npx now-sdk query sys_script -q sys_scope.scope=x_1_app -o json",
+    "npx now-sdk query sys_auth_profile_basic -q nameLIKEx -f name -o json",
+    "npx now-sdk query oauth_entity -q name=x -f name,client_id -o json",
+    "npx now-sdk query sys_rest_message -q name=x -f name,basic_auth_password -o json",
+    "npx now-sdk query sys_user -q active=true -f user_name,user_password -o json",
+    "npx now-sdk query sys_properties -q nameSTARTSWITHx_1_app -f name,value -o json",
+  ]) assert.equal(allowed(blocked, research), false, blocked);
+  assert.equal(allowed("npx now-sdk query sys_script -q x -o json", "assisted-delivery-code-review"), false, "applies to every agent");
+});
+
+test("research reads the instance with query only", () => {
+  assert.equal(allowed("npx now-sdk download ./app", "assisted-delivery-research"), false);
+  assert.equal(allowed("npx now-sdk transform --from x", "assisted-delivery-research"), false);
+  assert.equal(allowed("npx @servicenow/sdk download ./app", "assisted-delivery-research"), false);
+  assert.equal(allowed("npx now-sdk init --from abc", "assisted-delivery-code-writer"), true, "the writer may init a project");
 });
 
 test("as a hook, a blocked command exits 2 with the reason and an allowed one exits 0", () => {

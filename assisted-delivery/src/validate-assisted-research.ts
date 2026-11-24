@@ -5,6 +5,7 @@ import {
   type AssistedApplicationResearchPackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
+import { findPersonalData } from "./mask-evidence.js";
 
 export const MAX_ASSISTED_RESEARCH_BYTES = 2 * 1_024 * 1_024;
 const PROPOSED_DESIGN_PATTERN =
@@ -332,6 +333,12 @@ function validateDeliveredResearchArtifacts(
     const path = resolve(evidence.evidenceFile);
     if (!existsSync(path) || !statSync(path).isFile()) {
       throw new Error(`Research evidence file does not exist: '${path}'.`);
+    }
+    const personal = findPersonalData(readFileSync(path, "utf8"));
+    if (personal.length > 0) {
+      throw new Error(
+        `Research evidence '${path}' still holds personal data (${personal.slice(0, 3).join(", ")}${personal.length > 3 ? ", …" : ""}); run evidence:mask on the evidence directory.`,
+      );
     }
   }
 }
