@@ -78,6 +78,17 @@ test("instance reads name their fields and never touch secrets", () => {
   assert.equal(allowed("npx now-sdk query sys_script -q x -o json", "assisted-delivery-code-review"), false, "applies to every agent");
 });
 
+test("document-only agents never touch an instance, even to read", () => {
+  for (const agent of ["assisted-delivery-story-drafter", "assisted-delivery-solution-advisor", "assisted-delivery-technical-design", "assisted-delivery-test-design", "assisted-delivery-requirements-extractor"]) {
+    assert.equal(allowed("npx now-sdk query sys_app -q scope=x_1 -f version -o json", agent), false, `${agent}: query`);
+    assert.equal(allowed("npx @servicenow/sdk auth --list", agent), false, `${agent}: auth --list`);
+    assert.equal(allowed("cd x && npx now-sdk download ./app", agent), false, `${agent}: download`);
+    assert.equal(allowed("npx @servicenow/sdk explain BusinessRule --peek --format=raw", agent), true, `${agent}: docs`);
+    assert.equal(allowed(`"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/ingest-documents.ts" "./sources"`, agent), true, `${agent}: ingest`);
+  }
+  assert.equal(allowed("npx now-sdk query sys_app -q scope=x_1 -f version -o json", "assisted-delivery-research"), true, "research still reads");
+});
+
 test("research reads the instance with query only", () => {
   assert.equal(allowed("npx now-sdk download ./app", "assisted-delivery-research"), false);
   assert.equal(allowed("npx now-sdk transform --from x", "assisted-delivery-research"), false);

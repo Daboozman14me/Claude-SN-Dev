@@ -14,6 +14,8 @@ import {
   validateAssistedResearchJson,
 } from "../src/validate-assisted-research.js";
 import { ASSISTED_APPLICATION_ARTIFACT_QUERIES } from "../src/assisted-research-plan.js";
+// @ts-expect-error plain JavaScript hook, no type declarations
+import { decide } from "../hooks/guard.mjs";
 
 function researchPackage(directory = "C:\\artifacts\\example\\request"): unknown {
   const evidenceDirectory = join(
@@ -164,6 +166,15 @@ test("research plan covers every required inventory category", () => {
     ASSISTED_APPLICATION_ARTIFACT_QUERIES.map(({ category }) => category).sort(),
     [...REQUIRED_RESEARCH_INVENTORY_CATEGORIES].sort(),
   );
+});
+
+test("every research plan query passes the guard hook", () => {
+  for (const { table, fields, requiredFilter } of ASSISTED_APPLICATION_ARTIFACT_QUERIES) {
+    const query = ["sys_scope.scope=x_1_app", requiredFilter].filter(Boolean).join("^");
+    const command = `npx now-sdk query ${table} -q "${query}" -f ${fields.join(",")} -o json`;
+    const verdict = decide({ tool_name: "Bash", tool_input: { command }, agent_type: "assisted-delivery-research" });
+    assert.equal(verdict.allow, true, `${table}: ${verdict.reason}`);
+  }
 });
 
 test("research inventory retains every counted artifact", () => {

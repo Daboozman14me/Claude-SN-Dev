@@ -7,6 +7,8 @@ export interface AssistedArtifactQueryDefinition {
     | "application_tables"
     | "parent_inventory_records";
   fallbackTables?: readonly string[];
+  /** Encoded-query clauses every read of this table must append (for example, excluding secrets). */
+  requiredFilter?: string;
 }
 
 export const ASSISTED_APPLICATION_ARTIFACT_QUERIES: readonly AssistedArtifactQueryDefinition[] =
@@ -137,8 +139,9 @@ export const ASSISTED_APPLICATION_ARTIFACT_QUERIES: readonly AssistedArtifactQue
     {
       category: "properties",
       table: "sys_properties",
-      fields: ["sys_id", "name", "value", "description"],
+      fields: ["sys_id", "name", "value", "type", "description"],
       selection: "application_scope",
+      requiredFilter: "type!=password^type!=password2",
     },
     {
       category: "transform_maps",

@@ -77,6 +77,13 @@ export function checkQuery(segment) {
 
 const PROJECT_FROM_INSTANCE = /(\bnow-sdk\b|@servicenow\/sdk\b)[^\n|;&]*\b(download|transform|init)\b/i;
 
+// Agents that work only from supplied documents and never touch an instance; they may read SDK docs only.
+export const NO_INSTANCE_AGENTS = new Set([
+  "assisted-delivery-story-drafter", "assisted-delivery-solution-advisor", "assisted-delivery-technical-design",
+  "assisted-delivery-test-design", "assisted-delivery-requirements-extractor",
+]);
+const SDK_DOCS_ONLY = /(\bnow-sdk\b|@servicenow\/sdk\b)\s+(explain|--help|-h|--version)(\s|$)/i;
+
 export function decide(input) {
   if (input?.tool_name !== "Bash") return { allow: true };
   const command = String(input?.tool_input?.command ?? "");
@@ -91,6 +98,10 @@ export function decide(input) {
   }
   if (NETWORK.test(command)) {
     return { allow: false, reason: `${agent} may not call out with curl or web requests; use now-sdk query for read-only instance access.` };
+  }
+  if (NO_INSTANCE_AGENTS.has(agent)) {
+    const sdk = splitCommand(command).find((part) => /\bnow-sdk\b|@servicenow\/sdk/.test(part) && !SDK_DOCS_ONLY.test(part));
+    if (sdk) return { allow: false, reason: `${agent} works only from supplied documents and never reads or writes an instance; name the missing fact and ask for research instead.` };
   }
   for (const part of splitCommand(command)) {
     if (!/\bnow-sdk\b|@servicenow\/sdk/.test(part)) continue;

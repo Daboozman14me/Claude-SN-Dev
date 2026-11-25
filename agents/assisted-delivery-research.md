@@ -32,7 +32,8 @@ to the separate Solution Recommendation report produced by a different agent.
      present even when their count is zero.
    - `~/.claude/assisted-delivery/src/assisted-research-plan.ts`
      — treat `ASSISTED_APPLICATION_ARTIFACT_QUERIES` as the minimum
-     authoritative category/table/field query plan.
+     authoritative category/table/field query plan, and append each entry's
+     `requiredFilter` to its query.
 3. If the user or supervisor names a saved SDK credential alias, run
    `now-sdk auth --list` and match it case-insensitively. If none match,
    report that plainly and stop — never request or accept a password.

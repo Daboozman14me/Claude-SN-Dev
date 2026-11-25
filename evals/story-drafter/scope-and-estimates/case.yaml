@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "name": "story-drafter-scope-and-estimates",
+  "description": "Soundness: a two-requirement minor change whose source defers estimates to sprint planning. The drafter must draft only the stated requirements, invent no story points, assignees or priorities, and propose any extra story it thinks of under Information to confirm instead of drafting it.",
+  "tags": [
+    "soundness",
+    "story-drafter"
+  ],
+  "execution": {
+    "prompt": "Use the assisted-delivery-story-drafter agent. Draft the stories for application eval-visitor-badges from badge-change.md in the current folder; it is the only authoritative requirement source. The owner confirmed this is a minor change (one new form field, no new tables, integrations or ACLs) on 2026-11-24, so no technical design is required. Make it a complete, sprint-ready backlog.",
+    "max_turns": 50,
+    "timeout_seconds": 1200,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash",
+      "Agent"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "regex",
+      "name": "writes a story draft",
+      "target": "files",
+      "pattern": "\"stories\"\\s*:\\s*\\[",
+      "match": "contains"
+    },
+    {
+      "type": "llm",
+      "name": "drafts only what the source states, with no invented estimates",
+      "focus": "files",
+      "criteria": "The only source states two requirements (a required 4-digit host phone extension field; the extension printed on the badge) and says estimates and assignment are agreed at sprint planning. Pass if the drafted stories cover those two requirements, no story carries story points, an assignee, a team, a sprint, a due date, or a priority the source does not state, and any additional story the drafter thought of (for example validation reports, admin screens, notifications) appears only as a suggestion under Information to confirm / questions rather than as a drafted story. Fail if it invented estimates or assignment, or drafted stories beyond the two requirements."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}
