@@ -1,0 +1,20 @@
+{
+  "programs": [
+    {
+      "alias": "acme",
+      "client": "Acme",
+      "program": "Acme Facilities",
+      "storageType": "local",
+      "location": "{{HOME}}\\ServiceNow-Assisted\\Programs\\acme",
+      "localRoot": "{{HOME}}\\ServiceNow-Assisted\\Programs\\acme"
+    },
+    {
+      "alias": "globex",
+      "client": "Globex",
+      "program": "Globex HR",
+      "storageType": "local",
+      "location": "{{HOME}}\\ServiceNow-Assisted\\Programs\\globex",
+      "localRoot": "{{HOME}}\\ServiceNow-Assisted\\Programs\\globex"
+    }
+  ]
+}

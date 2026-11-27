@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { ARTIFACT_TYPE_FOLDERS, artifactTypeFolder } from "./artifact-layout.js";
 import { registeredApplicationFolder, slugifyArtifactName } from "./artifact-storage.js";
@@ -282,6 +282,12 @@ export function applyMigration(plan: MigrationPlan, options: { alsoRewrite?: str
     }
   }
   const resealedHashes = resealHashes(copiedFiles);
+  // Rewriting and resealing touch the copies; keep each document's original date so "latest" still
+  // means the most recent work, not the day of the move.
+  for (const copy of copiedFiles) {
+    const original = statSync(copy.from);
+    utimesSync(copy.to, original.atime, original.mtime);
+  }
 
   const validation: MigrationResult["validation"] = [];
   const regressions: string[] = [];

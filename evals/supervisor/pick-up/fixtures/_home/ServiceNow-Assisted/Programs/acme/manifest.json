@@ -1,0 +1,12 @@
+{
+  "program": "Acme Facilities",
+  "client": "Acme",
+  "storageType": "local",
+  "root": "{{HOME}}\\ServiceNow-Assisted\\Programs\\acme",
+  "projects": [
+    {
+      "application": "Facilities Request",
+      "folder": "facilities-request"
+    }
+  ]
+}

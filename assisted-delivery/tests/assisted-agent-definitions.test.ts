@@ -249,6 +249,13 @@ test("supervisor routes the complete assisted workflow", () => {
   const agent = readAgent("assisted-delivery-supervisor");
   assert.match(agent, /\*\*Work label\.\*\*/);
   assert.match(agent, /\*\*Never hold\s+up a request just to ask for a label\.\*\*/);
+  assert.match(agent, /## Starting a session and the current application/);
+  assert.match(agent, /project-status\.ts" --list/);
+  assert.match(agent, /\*\*"Let's pick up on X\."\*\*/);
+  assert.match(agent, /never start work on your own/);
+  assert.match(agent, /\*\*"Let's start a new project\."\*\* Delegate `assisted-delivery-scaffolding`/);
+  assert.match(agent, /\*\*Remember the current application\*\* until the user names another one/);
+  assert.match(agent, /`\[ARTRAN · Army\]`/);
   assert.match(agent, /pick the label yourself, delegate straight away/);
   assert.match(agent, /pass that same\s+label to every specialist for that work/);
   assert.match(agent, /known differences, work label \(rule 18\)/);

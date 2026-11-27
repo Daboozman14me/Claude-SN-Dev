@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -54,6 +54,25 @@ export function prepareSession(prefix: string, toolkitDir: string, userSettingsP
   symlinkSync(toolkitDir, join(home, ".claude", "assisted-delivery"), "junction");
   const env = { ...process.env, USERPROFILE: home, HOME: home, CLAUDE_CONFIG_DIR: join(home, ".claude"), SN_SDK_CREDENTIALS_DIR: noCredentials };
   return { root, cwd, home, env };
+}
+
+// A case's fixtures go into the workspace, except fixtures/_home, which goes into the throwaway home
+// (a registry, program folders). "{{HOME}}" in its JSON files becomes that home's path, since the
+// registry records absolute paths.
+export function stageFixtures(fixtures: string, session: Pick<EvalSession, "cwd" | "home">): void {
+  const homeFixtures = join(fixtures, "_home");
+  cpSync(fixtures, session.cwd, { recursive: true, filter: (source) => resolve(source) !== resolve(homeFixtures) });
+  if (!existsSync(homeFixtures)) return;
+  cpSync(homeFixtures, session.home, { recursive: true });
+  const escapedHome = JSON.stringify(session.home).slice(1, -1);
+  const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    return statSync(path).isDirectory() ? (path === join(session.home, ".claude", "assisted-delivery") ? [] : walk(path)) : [path];
+  });
+  for (const file of walk(session.home).filter((path) => path.endsWith(".json"))) {
+    const text = readFileSync(file, "utf8");
+    if (text.includes("{{HOME}}")) writeFileSync(file, text.split("{{HOME}}").join(escapedHome));
+  }
 }
 
 // The toolkit link goes first, with unlink (never recursive delete), so cleanup can't reach the real toolkit.
@@ -220,7 +239,7 @@ if (isDirectExecution(import.meta.url, process.argv[1])) {
       for (let run = 1; run <= count; run += 1) {
         const session = prepareSession(entry.value.name, toolkitDir, join(homedir(), ".claude", "settings.json"), noCredentials);
         const workspace = session.cwd;
-        if (existsSync(join(entry.dir, "fixtures"))) cpSync(join(entry.dir, "fixtures"), workspace, { recursive: true });
+        if (existsSync(join(entry.dir, "fixtures"))) stageFixtures(join(entry.dir, "fixtures"), session);
         const protectedDirs = [toolkitDir, join(session.home, ".claude", "assisted-delivery"), join(repoRoot, "agents"), join(repoRoot, "skills")];
         const { output, error } = await runClaude(claudeArgs(entry, repoRoot, model, protectedDirs), entry.value.execution.prompt, workspace, session.env, (entry.value.execution.timeout_seconds ?? 300) * 1000);
         const trace = parseStream(output);

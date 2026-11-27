@@ -87,16 +87,16 @@
   "stories": [
     {
       "id": "S0-01",
-      "title": "Story S0-01",
-      "userStory": "As a user I want S0-01.",
-      "description": "Implements S0-01.",
+      "title": "Room records",
+      "userStory": "As a facilities admin I want room records so rooms can be listed.",
+      "description": "As a facilities admin I want room records so rooms can be listed.",
       "citationIds": [
         "cite-1"
       ],
       "acceptanceCriteria": [
         {
           "id": "S0-01-AC01",
-          "text": "Given a free room, when a user books it, then the booking is <confirmed> & saved.",
+          "text": "Given an admin, when they add a room with a name and capacity, then the room is saved and listed.",
           "citationIds": [
             "cite-1"
           ]
@@ -108,16 +108,16 @@
     },
     {
       "id": "S0-02",
-      "title": "Story S0-02",
-      "userStory": "As a user I want S0-02.",
-      "description": "Implements S0-02.",
+      "title": "Room admin role",
+      "userStory": "As a facilities admin I want a room admin role so only admins change rooms.",
+      "description": "As a facilities admin I want a room admin role so only admins change rooms.",
       "citationIds": [
         "cite-1"
       ],
       "acceptanceCriteria": [
         {
           "id": "S0-02-AC01",
-          "text": "Given a free room, when a user books it, then the booking is <confirmed> & saved.",
+          "text": "Given a user without the room admin role, when they open a room record, then they can view it but not edit it.",
           "citationIds": [
             "cite-1"
           ]
@@ -131,9 +131,9 @@
     },
     {
       "id": "S1-01",
-      "title": "Story S1-01",
-      "userStory": "As a user I want S1-01.",
-      "description": "Implements S1-01.",
+      "title": "Book a room",
+      "userStory": "As a user I want to book a free room.",
+      "description": "As a user I want to book a free room.",
       "citationIds": [
         "cite-1"
       ],

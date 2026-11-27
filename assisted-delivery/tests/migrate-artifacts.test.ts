@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -120,6 +120,8 @@ test("paths are rewritten in every form they are written in", () => {
 test("apply copies, rewrites, reseals hashes, keeps packages valid, and archives the old folder", () => {
   const layout = oldLayout();
   assert.equal(validateAssistedCodeReviewFile(layout.review), layout.review, "valid before");
+  const lastWeek = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+  utimesSync(layout.implementation, lastWeek, lastWeek);
   const decisions = join(layout.program, "manifest-notes.md");
   writeFileSync(decisions, `log: ${join(layout.artifacts, "demo-app", "requirements", "owner-decisions.md")}`);
   const plan = planMigration({ sourceRoot: layout.artifacts, apps: [{ from: "demo-app", application: "Demo App" }], registryPath: layout.registryPath });
@@ -140,6 +142,8 @@ test("apply copies, rewrites, reseals hashes, keeps packages valid, and archives
   assert.ok(readFileSync(decisions, "utf8").startsWith(`log: ${target}`));
 
   assert.deepEqual(result.regressions, []);
+  const originalDate = statSync(join(result.archivedTo[0]!, "fix-one", "code-implementation-v001.json")).mtimeMs;
+  assert.equal(statSync(implementation).mtimeMs, originalDate, "a rewritten copy keeps the original's date");
   assert.equal(existsSync(join(layout.artifacts, "demo-app")), false, "the old folder is archived");
   assert.equal(result.archivedTo.length, 1);
   assert.ok(existsSync(join(result.archivedTo[0]!, "fix-one-review", "code-review-v001.json")), "nothing is deleted");

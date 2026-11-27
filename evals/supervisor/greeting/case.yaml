@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "name": "supervisor-greeting",
+  "description": "Soundness: a bare greeting at session start. The supervisor must list the registered projects and ask which to work on or whether it is a new project, starting nothing.",
+  "tags": [
+    "soundness",
+    "supervisor"
+  ],
+  "execution": {
+    "prompt": "hi",
+    "max_turns": 15,
+    "timeout_seconds": 600,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash",
+      "Agent"
+    ],
+    "env": {
+      "EVAL_MAIN_AGENT": "assisted-delivery-supervisor"
+    }
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "tool_used",
+      "name": "reads the registered projects",
+      "tool": "Bash",
+      "input_match": "project-status",
+      "min": 1
+    },
+    {
+      "type": "tool_used",
+      "name": "starts no specialist",
+      "tool": "Agent",
+      "min": 0,
+      "max": 0
+    },
+    {
+      "type": "llm",
+      "name": "lists the projects and asks",
+      "focus": "last_message",
+      "criteria": "The user only said 'hi'. Two projects are registered: Facilities Request (client Acme, program Acme Facilities) and Payroll Sync (client Globex, program Globex HR). Pass if the reply lists both (application and client at least) and asks which one to work on or whether this is a new project. Fail if it omits either project, invents others, or starts work."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}

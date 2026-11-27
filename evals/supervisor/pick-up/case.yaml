@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "name": "supervisor-pick-up",
+  "description": "Soundness: \"pick up\" on a registered project. The supervisor must read its status, say where it stands (latest work epic-2-intake-routing, stories drafted, no tests yet), suggest the next step in the delivery order, and ask before starting anything.",
+  "tags": [
+    "soundness",
+    "supervisor"
+  ],
+  "execution": {
+    "prompt": "let's pick up on the facilities work",
+    "max_turns": 20,
+    "timeout_seconds": 900,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash",
+      "Agent"
+    ],
+    "env": {
+      "EVAL_MAIN_AGENT": "assisted-delivery-supervisor"
+    }
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "tool_used",
+      "name": "reads the project status",
+      "tool": "Bash",
+      "input_match": "project-status",
+      "min": 1
+    },
+    {
+      "type": "tool_used",
+      "name": "starts no specialist before the user says what to do",
+      "tool": "Agent",
+      "min": 0,
+      "max": 0
+    },
+    {
+      "type": "llm",
+      "name": "says where the project stands and asks",
+      "focus": "last_message",
+      "criteria": "The user asked to pick up the facilities work. The registered project is 'Facilities Request' (client Acme) with a requirements register, a technical design at v002 and a story draft, all for work label epic-2-intake-routing, and no test plan, code or review yet. Pass if the reply identifies Facilities Request, says briefly where it stands (stories for epic-2-intake-routing drafted, design v002, requirements done), suggests test design (or tests) as the next step, and asks the user what they want to do, without starting work. A short banner naming the application is good. Fail if it names the wrong project, invents documents, or starts work."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}

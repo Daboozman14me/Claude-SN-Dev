@@ -21,7 +21,7 @@ const SUPERVISOR_ALLOW = [
   /^(npx\s+)?(now-sdk|@servicenow\/sdk)\s+query(\s|$)/i,
   /^(npx\s+)?(now-sdk|@servicenow\/sdk)\s+(--help|-h|--version|explain|query\s+--help|auth\s+(--list|-l))(\s|$)/i,
   /^git\s+(-C\s+\S+\s+)?(status|log|diff|show|rev-parse|ls-remote|ls-files|tag\s+-l|branch\s+--show-current)(\s|$)/i,
-  /tsx(\.cmd)?["']?\s+["']?[^"'\s]*(read-project-setup|print-contract-schema|validate-assisted-[\w-]+)\.ts["']?(\s|$)/i,
+  /tsx(\.cmd)?["']?\s+["']?[^"'\s]*(read-project-setup|project-status|print-contract-schema|validate-assisted-[\w-]+)\.ts["']?(\s|$)/i,
   /^npm\s+run\s+(-s\s+)?(setup:show|contract:schema|validate:[\w-]+)(\s|$)/i,
 ];
 

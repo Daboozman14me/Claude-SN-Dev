@@ -1,0 +1,12 @@
+{
+  "program": "Globex HR",
+  "client": "Globex",
+  "storageType": "local",
+  "root": "{{HOME}}\\ServiceNow-Assisted\\Programs\\globex",
+  "projects": [
+    {
+      "application": "Payroll Sync",
+      "folder": "payroll-sync"
+    }
+  ]
+}

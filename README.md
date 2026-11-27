@@ -6,6 +6,26 @@ their supporting TypeScript library and skills. It is scoped to the toolkit
 and its configuration only — it does **not** contain any ServiceNow client
 project artifacts (those live separately, outside this repo).
 
+## Getting started
+
+After installing (see `docs/settings-permissions.md`), create the desktop icon
+once:
+
+```
+cd assisted-delivery
+npm run setup:shortcut
+```
+
+**Assisted Delivery** on the desktop opens Windows Terminal (PowerShell) in
+`%USERPROFILE%\ServiceNow-Assisted` with the supervisor in charge
+(`claude --agent assisted-delivery-supervisor`). Start delivery work there;
+plain `claude` stays a normal session. Only the session you start can launch
+and resume specialists, so the supervisor routes reliably only when it *is*
+the session. Say "hi" to see your registered projects, "let's pick up on
+<project>" for where one stands and the next step, or "let's start a new
+project" to set one up. Documents land at each project's registered
+location — see `docs/document-layout.md`.
+
 ## What's in here
 
 - `agents/` — the subagent definitions: `assisted-delivery-supervisor` (the
