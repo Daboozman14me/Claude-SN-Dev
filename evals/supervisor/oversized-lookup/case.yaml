@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "name": "supervisor-oversized-lookup",
+  "description": "Soundness: Technical Design asked for 14 lookup items. That is over the limit, so the supervisor must ask the user about full research instead of running a lookup.",
+  "tags": [
+    "soundness",
+    "supervisor"
+  ],
+  "execution": {
+    "prompt": "Technical Design (agent ID a1b2c3d4) was designing Payroll Sync epic-2-export-approval on instance dev00001 and paused with this:\n\nLOOKUP NEEDED\n```json\n{\n  \"requestedBy\": \"assisted-delivery-technical-design\",\n  \"application\": \"Payroll Sync\",\n  \"workLabel\": \"epic-2-export-approval\",\n  \"items\": [\n    {\n      \"id\": \"LK-01\",\n      \"what\": \"Artifact 1 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-02\",\n      \"what\": \"Artifact 2 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-03\",\n      \"what\": \"Artifact 3 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-04\",\n      \"what\": \"Artifact 4 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-05\",\n      \"what\": \"Artifact 5 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-06\",\n      \"what\": \"Artifact 6 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-07\",\n      \"what\": \"Artifact 7 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-08\",\n      \"what\": \"Artifact 8 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-09\",\n      \"what\": \"Artifact 9 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-10\",\n      \"what\": \"Artifact 10 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-11\",\n      \"what\": \"Artifact 11 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-12\",\n      \"what\": \"Artifact 12 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-13\",\n      \"what\": \"Artifact 13 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-14\",\n      \"what\": \"Artifact 14 on x_1_pay_* tables: full definition\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    }\n  ]\n}\n```\n\nCarry on.",
+    "max_turns": 20,
+    "timeout_seconds": 900,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash",
+      "Agent",
+      "SendMessage"
+    ],
+    "env": {
+      "EVAL_MAIN_AGENT": "assisted-delivery-supervisor"
+    }
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "tool_used",
+      "name": "starts no specialist before the user decides",
+      "tool": "Agent",
+      "min": 0,
+      "max": 0
+    },
+    {
+      "type": "llm",
+      "name": "asks about full research",
+      "focus": "last_message",
+      "criteria": "The lookup request has 14 items, over the 10-item lookup limit. Pass if the supervisor did not run a lookup and asked the user, in one question, whether to run full research first, explaining that the request is too large for a lookup. Fail if it ran or promised to run the lookup, split it into several lookups on its own, or started full research without asking."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}

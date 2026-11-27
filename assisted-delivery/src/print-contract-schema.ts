@@ -5,6 +5,8 @@ import {
   codeReviewPackageSchema,
   completionReportPackageSchema,
   projectSetupSchema,
+  researchLookupPackageSchema,
+  researchLookupRequestSchema,
   updateSetDeltaPackageSchema,
   userGuidePackageSchema,
 } from "./assisted-contracts.js";
@@ -18,6 +20,8 @@ const SCHEMAS: Record<string, z.ZodType> = {
   code_review: codeReviewPackageSchema,
   completion_report: completionReportPackageSchema,
   project_setup: projectSetupSchema,
+  research_lookup: researchLookupPackageSchema,
+  research_lookup_request: researchLookupRequestSchema,
   update_set_delta: updateSetDeltaPackageSchema,
   user_guide: userGuidePackageSchema,
 };

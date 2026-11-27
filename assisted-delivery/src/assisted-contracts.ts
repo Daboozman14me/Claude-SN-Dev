@@ -556,6 +556,101 @@ export type AssistedApplicationResearchPackage = z.infer<
   typeof assistedApplicationResearchPackageSchema
 >;
 
+// ---------------------------------------------------------------------------
+// Research lookup: a small, targeted read for an agent that paused mid-work
+// (Solution Advisor, Technical Design) because it needed a few exact
+// current-state facts. More than MAX_RESEARCH_LOOKUP_ITEMS means full research.
+
+export const MAX_RESEARCH_LOOKUP_ITEMS = 10;
+
+export const researchLookupItemSchema = z
+  .object({
+    id: z.string().regex(/^LK-[0-9]{2}$/),
+    what: z.string().min(1).max(1_000),
+    why: z.string().min(1).max(1_000),
+    table: z.string().min(1).max(200).optional(),
+  })
+  .strict();
+
+// What a paused agent hands back: the items, batched, and who asked.
+export const researchLookupRequestSchema = z
+  .object({
+    requestedBy: z.enum(["assisted-delivery-solution-advisor", "assisted-delivery-technical-design"]),
+    application: z.string().min(1).max(500),
+    workLabel: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+    items: z.array(researchLookupItemSchema).min(1).max(MAX_RESEARCH_LOOKUP_ITEMS),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const ids = value.items.map((item) => item.id);
+    if (new Set(ids).size !== ids.length) {
+      context.addIssue({ code: "custom", path: ["items"], message: "Lookup item IDs must be unique." });
+    }
+  });
+export type ResearchLookupRequest = z.infer<typeof researchLookupRequestSchema>;
+
+export const researchLookupRecordSchema = z
+  .object({
+    table: z.string().min(1).max(200),
+    sysId: z.string().regex(/^[0-9a-f]{32}$/i),
+    name: z.string().min(1).max(1_000),
+    // The record's sys_updated_on when read; a later lookup compares it to decide reuse.
+    sysUpdatedOn: z.string().min(1).max(100),
+    evidenceFile: filePathSchema.max(4_096),
+  })
+  .strict();
+
+export const researchLookupResultSchema = z
+  .object({
+    itemId: z.string().regex(/^LK-[0-9]{2}$/),
+    status: z.enum(["answered", "not_found", "partial"]),
+    answer: z.string().min(1).max(10_000),
+    records: z.array(researchLookupRecordSchema).max(200).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.status === "answered" && value.records.length === 0) {
+      context.addIssue({ code: "custom", path: ["records"], message: `An answered lookup item (${value.itemId}) cites at least one record.` });
+    }
+  });
+
+export const researchLookupPackageSchema = z
+  .object({
+    contractVersion: z.literal(ASSISTED_CONTRACT_VERSION),
+    packageType: z.literal("research_lookup"),
+    packageId: z.string().min(1).max(200),
+    title: z.string().min(1).max(500),
+    lookedUpAt: z.string().datetime({ offset: true }),
+    instance: z.string().min(1).max(500),
+    request: researchLookupRequestSchema,
+    results: z.array(researchLookupResultSchema).min(1).max(MAX_RESEARCH_LOOKUP_ITEMS),
+    // Set when an earlier lookup was reused because none of its records had changed.
+    reusedFrom: z
+      .object({ path: filePathSchema, checkedAt: z.string().datetime({ offset: true }) })
+      .strict()
+      .optional(),
+    limitations: z.array(z.string().min(1).max(5_000)).max(100).default([]),
+    artifacts: z
+      .object({
+        markdown: filePathSchema,
+        json: filePathSchema,
+        evidenceDirectory: filePathSchema,
+      })
+      .strict(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const requested = new Set(value.request.items.map((item) => item.id));
+    const answered = new Set(value.results.map((result) => result.itemId));
+    for (const id of requested) {
+      if (!answered.has(id)) context.addIssue({ code: "custom", path: ["results"], message: `Lookup item ${id} has no result.` });
+    }
+    for (const id of answered) {
+      if (!requested.has(id)) context.addIssue({ code: "custom", path: ["results"], message: `Result for ${id}, which was not requested.` });
+    }
+  });
+export type ResearchLookupPackage = z.infer<typeof researchLookupPackageSchema>;
+
 function validateDocumentsAndCitations(
   documents: readonly NormalizedInputDocument[],
   citations: readonly AssistedCitation[],

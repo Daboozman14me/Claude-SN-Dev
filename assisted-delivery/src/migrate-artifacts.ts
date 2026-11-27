@@ -13,6 +13,7 @@ import { validateAssistedLoeFile } from "./validate-assisted-loe.js";
 import { validateAssistedRecommendationFile } from "./validate-assisted-recommendation.js";
 import { validateAssistedRequirementsFile } from "./validate-assisted-requirements.js";
 import { validateAssistedResearchFile } from "./validate-assisted-research.js";
+import { validateResearchLookupFile } from "./validate-assisted-research-lookup.js";
 import { validateAssistedStoryDraftFile } from "./validate-assisted-story-draft.js";
 import { validateAssistedTechnicalDesignFile } from "./validate-assisted-technical-design.js";
 import { validateAssistedTestPlanFile } from "./validate-assisted-test-plan.js";
@@ -183,6 +184,7 @@ export function validatePackage(jsonPath: string): { ok: boolean; message: strin
       case "requirements-extraction": return validateAssistedRequirementsFile(jsonPath);
       case "level-of-effort": return validateAssistedLoeFile(jsonPath);
       case "update-set-delta": return validateAssistedUpdateSetDeltaFile(jsonPath);
+      case "research-lookup": return validateResearchLookupFile(jsonPath);
       default: return undefined;
     }
   };

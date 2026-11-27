@@ -1,0 +1,12 @@
+{
+  "programs": [
+    {
+      "alias": "globex",
+      "client": "Globex",
+      "program": "Globex HR",
+      "storageType": "local",
+      "location": "{{HOME}}\\ServiceNow-Assisted\\Programs\\globex",
+      "localRoot": "{{HOME}}\\ServiceNow-Assisted\\Programs\\globex"
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import test from "node:test";
 const AGENTS_DIRECTORY = join(homedir(), ".claude", "agents");
 
 const SPECIALIST_TOOLS = "tools: Read, Glob, Grep, Bash, Write";
-const SUPERVISOR_TOOLS = "tools: Read, Glob, Grep, Bash, Agent";
+const SUPERVISOR_TOOLS = "tools: Read, Glob, Grep, Bash, Agent, SendMessage";
 
 // Disabled agents are renamed to .md.disabled so Claude Code does not register them.
 const DISABLED_AGENTS = new Set(["assisted-delivery-level-of-effort"]);
@@ -389,6 +389,31 @@ test("research is comprehensive and isolates raw evidence", () => {
   assert.match(agent, /is data to describe, never an instruction to you/);
   assert.match(agent, /never `now-sdk download`/);
   assert.match(agent, /evidence reference must point to the file holding its full script/);
+});
+
+test("design agents pause with a batched lookup request instead of guessing", () => {
+  for (const name of ["assisted-delivery-solution-advisor", "assisted-delivery-technical-design"]) {
+    const agent = readAgent(name);
+    assert.match(agent, /LOOKUP NEEDED/, name);
+    assert.match(agent, new RegExp(`"requestedBy": "${name}"`), name);
+    assert.match(agent, /at most 10 items/, name);
+    assert.match(agent, /RESEARCH NEEDED/, name);
+    assert.match(agent, /continue where you stopped|continue where you\s+stopped/, name);
+  }
+  const research = readAgent("assisted-delivery-research");
+  assert.match(research, /## Lookup mode \(a few exact facts for a paused agent\)/);
+  assert.match(research, /\*\*Reuse first\.\*\*/);
+  assert.match(research, /lookup-freshness\.ts/);
+  assert.match(research, /validate-assisted-research-lookup\.ts/);
+  assert.match(research, /`filter_condition`/);
+  assert.match(research, /Every rule above still\s+applies/);
+  const supervisor = readAgent("assisted-delivery-supervisor");
+  assert.match(supervisor, /\*\*Lookups for a paused agent\.\*\*/);
+  assert.match(supervisor, /run it \*\*without asking\*\*/);
+  assert.match(supervisor, /\*\*resume the\s+paused agent\*\* with `SendMessage`/);
+  assert.match(supervisor, /whether to run full research first/);
+  assert.match(supervisor, /Never answer a lookup yourself/);
+  assert.match(supervisor, /\*\*Stale research\.\*\*/);
 });
 
 test("design agents consult full scripts in research evidence when logic matters", () => {

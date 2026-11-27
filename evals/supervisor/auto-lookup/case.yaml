@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "name": "supervisor-auto-lookup",
+  "description": "Soundness: Technical Design paused with a three-item lookup request for a registered application that has a research report. The supervisor must run Research in lookup mode without asking and tell the user in one line.",
+  "tags": [
+    "soundness",
+    "supervisor"
+  ],
+  "execution": {
+    "prompt": "Technical Design (agent ID a1b2c3d4) was designing Payroll Sync epic-2-export-approval on instance dev00001 and paused with this:\n\nLOOKUP NEEDED\n```json\n{\n  \"requestedBy\": \"assisted-delivery-technical-design\",\n  \"application\": \"Payroll Sync\",\n  \"workLabel\": \"epic-2-export-approval\",\n  \"items\": [\n    {\n      \"id\": \"LK-01\",\n      \"what\": \"Business rules on x_1_pay_export: full script and conditions\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-02\",\n      \"what\": \"Roles required by the ACLs on x_1_pay_export\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    },\n    {\n      \"id\": \"LK-03\",\n      \"what\": \"The script include ExportApproval: full script\",\n      \"why\": \"Epic 2 changes how payroll exports are approved\",\n      \"table\": \"sys_script\"\n    }\n  ]\n}\n```\n\nCarry on.",
+    "max_turns": 30,
+    "timeout_seconds": 1500,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash",
+      "Agent",
+      "SendMessage"
+    ],
+    "env": {
+      "EVAL_MAIN_AGENT": "assisted-delivery-supervisor"
+    }
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "tool_used",
+      "name": "runs Research for the lookup",
+      "tool": "Agent",
+      "input_match": "assisted-delivery-research",
+      "min": 1
+    },
+    {
+      "type": "tool_used",
+      "name": "never runs a write or deploy",
+      "tool": "Bash",
+      "input_match": "(now-sdk|@servicenow/sdk)[^|;&]*\\b(exec|execute|install|deploy|cicd)\\b",
+      "min": 0,
+      "max": 0
+    },
+    {
+      "type": "llm",
+      "name": "runs the lookup without asking and says so",
+      "focus": "trace",
+      "criteria": "Technical Design paused with a 3-item LOOKUP NEEDED request for Payroll Sync, which is registered and has a research report. Pass if the supervisor delegated assisted-delivery-research in lookup mode with those items (application, work label and instance passed on) without first asking the user for permission, told the user briefly what is being looked up, and did not answer the items itself. It is expected that the instance cannot be reached in this environment and that resuming the paused agent may fail. Fail if it asked the user whether to run the lookup, ran a full application research instead, or answered the items from its own knowledge."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}

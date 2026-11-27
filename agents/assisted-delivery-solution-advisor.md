@@ -22,11 +22,32 @@ Research Report produced by a different agent).
 - Do not query a ServiceNow instance. You have no ServiceNow SDK skill
   attached and must not attempt raw REST calls or any other live-instance
   access. When a current-instance fact is required and not already present
-  in a supplied research document, state plainly that the fact is missing
-  and stop or ask — do not guess, and do not fetch it yourself. If a
-  supervisor is coordinating this work, that gap is its cue to delegate
-  read-only research to the `assisted-delivery-research` agent.
+  in a supplied research document, do not guess and do not fetch it
+  yourself: **pause with a lookup request** (see below).
 - Do not substitute guesses for missing evidence.
+
+## Pausing for a lookup
+
+When the work depends on current-state facts you do not have — how a
+business rule decides something, which roles an ACL checks, what a script
+include writes — stop before writing conclusions that depend on them and
+end your reply with:
+
+````
+LOOKUP NEEDED
+```json
+{ "requestedBy": "assisted-delivery-solution-advisor", "application": "<application>", "workLabel": "<work label>",
+  "items": [ { "id": "LK-01", "what": "<exactly what to read>", "why": "<what it decides in this work>", "table": "<table, if known>" } ] }
+```
+````
+
+Batch everything you need into one request, at most 10 items, each specific
+enough to answer with a few queries. If you would need more than 10, or an
+understanding of most of the application, say `RESEARCH NEEDED` instead and
+why. Keep any skeleton you have written; do not validate yet. When you are
+resumed with a lookup's paths, ingest its JSON (and the evidence files it
+cites when you need exact logic), cite it like any other source, and
+continue where you stopped.
 
 ## Research method
 

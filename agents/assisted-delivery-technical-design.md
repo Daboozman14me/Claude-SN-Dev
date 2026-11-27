@@ -62,9 +62,24 @@ and use `TechnicalDesignPackage` as the exact JSON shape.
    assumptions, and questions.
 4. Do not query ServiceNow. You have no ServiceNow SDK skill attached and
    must not attempt raw REST calls or any other live-instance access. If
-   instance facts are missing, state that plainly and stop or ask — never
-   guess. If a supervisor is coordinating this work, that gap is its cue to
-   delegate read-only research to the `assisted-delivery-research` agent.
+   instance facts are missing, never guess: **pause with a lookup request**.
+   End your reply with:
+
+   ````
+   LOOKUP NEEDED
+   ```json
+   { "requestedBy": "assisted-delivery-technical-design", "application": "<application>", "workLabel": "<work label>",
+     "items": [ { "id": "LK-01", "what": "<exactly what to read>", "why": "<what it decides in this design>", "table": "<table, if known>" } ] }
+   ```
+   ````
+
+   Batch everything you need into one request, at most 10 items, each
+   specific enough to answer with a few queries; if you would need more, or
+   an understanding of most of the application, say `RESEARCH NEEDED`
+   instead and why. Stop before writing design decisions that depend on the
+   missing facts; keep any skeleton and do not validate yet. When resumed
+   with a lookup's paths, ingest its JSON (and the evidence files it cites
+   when you need exact logic), cite it, and continue where you stopped.
 5. In evaluation mode, set `evaluatedDesignDocumentId` to the normalized
    document ID of the design being evaluated. Every coverage assessment and
    finding must cite at least one unit from that document. Requirements and

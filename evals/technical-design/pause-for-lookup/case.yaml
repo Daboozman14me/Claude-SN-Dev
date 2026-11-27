@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "name": "technical-design-pause-for-lookup",
+  "description": "Soundness: the design must change an existing business rule known only from a summary. Technical Design must pause with a precise lookup request for the rule's script and conditions instead of guessing how it works.",
+  "tags": [
+    "soundness",
+    "technical-design"
+  ],
+  "execution": {
+    "prompt": "Use the assisted-delivery-technical-design agent in mode=design for application eval-rooms, work label epic-4-cancel-frees-room. requirements.md in the current folder is the authoritative requirement source; research-summary.md is the current-state research. Relay its reply to me as is.",
+    "max_turns": 40,
+    "timeout_seconds": 1200,
+    "allowed_tools": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash",
+      "Agent",
+      "SendMessage"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "type": "regex",
+      "name": "pauses with a lookup request",
+      "target": "trace",
+      "pattern": "LOOKUP NEEDED",
+      "match": "contains"
+    },
+    {
+      "type": "llm",
+      "name": "asks for the rule's real logic instead of guessing",
+      "focus": "trace",
+      "criteria": "The design must change the existing 'Check conflicts' business rule, but the only current-state source is a summary that says its script and conditions were not captured. Pass if Technical Design paused with a LOOKUP NEEDED request (a JSON block, at most 10 items) that asks for the Check conflicts rule's script and conditions on x_1_room_reservation and says why (whether cancelled reservations are already excluded / how to change it), and did not write design decisions that assume how the existing script works. Fail if it invented the current script logic, finalized a design without the facts, or asked for a full application research for this narrow need."
+    }
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  }
+}

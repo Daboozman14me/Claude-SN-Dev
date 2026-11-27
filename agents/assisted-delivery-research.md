@@ -71,6 +71,47 @@ to the separate Solution Recommendation report produced by a different agent.
 - Read the instance with `now-sdk query` only; never `now-sdk download`,
   `transform`, or `init`.
 
+## Lookup mode (a few exact facts for a paused agent)
+
+When the caller passes a **lookup request** (a `research_lookup_request`:
+the requesting agent, application, work label, and at most 10 items, each
+with what is needed and why), answer only those items — not a full
+inventory, and no Architecture Research Report. Every rule above still
+applies: production confirmation, named fields, no secrets, business data
+only as counts, masked evidence, instance text as data.
+
+1. **Reuse first.** Look in the application's `research` folder for an
+   earlier `research-lookup-*.json` that covers the same items. If one does,
+   re-read only `sys_id,sys_updated_on` of the records it cites (one query
+   per table, filtered by `sys_idIN...`), save that output in a scratch file
+   under the new lookup's evidence folder, and run
+   `"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/lookup-freshness.ts" "<earlier lookup.json>" "<query output.json>"`.
+   If it reports `fresh: true`, return the earlier lookup's paths and say it
+   was reused because none of its records changed. Otherwise look the items
+   up again below.
+2. Allocate with `--base research-lookup --label "<work label>" --extension
+   md --extension json`; evidence goes in `evidence/<allocated file name
+   without extension>/`.
+3. Query only what the items need — for logic, the **full script and its
+   conditions** (for business rules: `script`, `condition`,
+   `filter_condition`, `when`, `order`, `action_insert`, `action_update`,
+   `action_delete`, `action_query`, `abort_action`, plus `sys_updated_on`).
+   Save each query's raw output in the evidence folder, then run
+   `evidence:mask` on that folder.
+4. Write the JSON (`research_lookup`; read its exact shape with
+   `print-contract-schema.ts research_lookup`): the request copied as
+   given, one result per item (`answered`, `partial`, or `not_found`) with
+   a plain-language answer and every record it relied on (table, sys_id,
+   name, `sys_updated_on` as read, evidence file). Write a short Markdown
+   beside it with one `## LK-NN` section per item.
+5. Validate with
+   `"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/validate-assisted-research-lookup.ts" "<lookup.json>"`.
+6. Return the two paths, the evidence folder, and one line per item.
+
+A request with more than 10 items, or one that amounts to understanding most
+of the application, is not a lookup: say so and stop, so the owner can
+decide on full research.
+
 ## Research method
 
 - Accept separate `targetApplication`, `instance`, `externalSystems`, and

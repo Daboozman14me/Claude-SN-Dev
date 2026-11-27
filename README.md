@@ -55,6 +55,9 @@ location — see `docs/document-layout.md`.
 - `docs/document-layout.md` — where every agent's documents live (the
   application's registered location, one folder per document type, work
   labels in file names) and how to move documents from the old layout.
+- `docs/lookup-workflow.md` — how Solution Advisor and Technical Design pause
+  for a few exact current-state facts, and how the supervisor runs a
+  Research lookup and resumes them.
 - `docs/code-review-workflow.md` — how a code review flows from report to
   human decisions to fixes to re-review.
 - `docs/backlog-workflow.md` — loading approved stories into ServiceNow Agile,
