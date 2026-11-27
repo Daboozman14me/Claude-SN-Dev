@@ -7,6 +7,7 @@ import {
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
 import { validateAssistedTechnicalDesignFile } from "./validate-assisted-technical-design.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 export function validateAssistedStoryDraftJson(json: string): void {
   storyDraftPackageSchema.parse(JSON.parse(json) as unknown);
@@ -22,9 +23,9 @@ function validateArtifactPair(
       "Story artifacts.json must identify the JSON file being validated.",
     );
   }
-  const match = basename(expectedJsonPath).match(/^(story-draft-v[0-9]+)\.json$/);
+  const match = matchArtifactFileName(basename(expectedJsonPath), "story-draft");
   if (!match) {
-    throw new Error("Story JSON filename must use story-draft-vNNN.json.");
+    throw new Error("Story JSON filename must use story-draft[-<work label>]-vNNN.json.");
   }
   const expectedHtmlPath = join(dirname(expectedJsonPath), `${match[1]!}.html`);
   if (resolve(value.artifacts.html) !== resolve(expectedHtmlPath)) {

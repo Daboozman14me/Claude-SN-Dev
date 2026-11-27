@@ -32,6 +32,9 @@ project artifacts (those live separately, outside this repo).
   governed context-file model (inspired by the "Octane" methodology).
 - `docs/settings-permissions.md` — the Claude Code permission entries this
   toolkit needs, for setting it up on another machine.
+- `docs/document-layout.md` — where every agent's documents live (the
+  application's registered location, one folder per document type, work
+  labels in file names) and how to move documents from the old layout.
 - `docs/code-review-workflow.md` — how a code review flows from report to
   human decisions to fixes to re-review.
 - `docs/backlog-workflow.md` — loading approved stories into ServiceNow Agile,

@@ -115,7 +115,7 @@ progress unless the owner asks for an `epicStateOverrides` entry.
 Allocate synchronized paths (do not `cd` into the toolkit):
 
 ```
-"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "backlog" --base backlog --extension html --extension json
+"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --base backlog --extension html --extension json
 ```
 
 Set `packageId` to `<application>-backlog-vNNN`. Read the package shape with

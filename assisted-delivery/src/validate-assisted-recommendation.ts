@@ -5,6 +5,7 @@ import {
   type SolutionRecommendationPackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 export function validateAssistedRecommendationJson(json: string): void {
   solutionRecommendationPackageSchema.parse(JSON.parse(json) as unknown);
@@ -20,12 +21,10 @@ function validateArtifactPair(
       "Recommendation artifacts.json must identify the JSON file being validated.",
     );
   }
-  const match = basename(expectedJsonPath).match(
-    /^(solution-recommendation-v[0-9]+)\.json$/,
-  );
+  const match = matchArtifactFileName(basename(expectedJsonPath), "solution-recommendation");
   if (!match) {
     throw new Error(
-      "Recommendation JSON filename must use solution-recommendation-vNNN.json.",
+      "Recommendation JSON filename must use solution-recommendation[-<work label>]-vNNN.json.",
     );
   }
   const expectedHtmlPath = join(dirname(expectedJsonPath), `${match[1]!}.html`);

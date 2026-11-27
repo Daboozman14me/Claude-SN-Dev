@@ -5,6 +5,7 @@ import {
   type RequirementsExtractionPackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 export function validateAssistedRequirementsJson(json: string): void {
   requirementsExtractionPackageSchema.parse(JSON.parse(json) as unknown);
@@ -20,12 +21,10 @@ function validateArtifactPair(
       "Requirements artifacts.json must identify the JSON file being validated.",
     );
   }
-  const match = basename(expectedJsonPath).match(
-    /^(requirements-extraction-v[0-9]+)\.json$/,
-  );
+  const match = matchArtifactFileName(basename(expectedJsonPath), "requirements-extraction");
   if (!match) {
     throw new Error(
-      "Requirements JSON filename must use requirements-extraction-vNNN.json.",
+      "Requirements JSON filename must use requirements-extraction[-<work label>]-vNNN.json.",
     );
   }
   const expectedHtmlPath = join(dirname(expectedJsonPath), `${match[1]!}.html`);

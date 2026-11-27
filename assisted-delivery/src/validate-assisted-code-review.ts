@@ -7,6 +7,7 @@ import {
   type CodeReviewPackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 export const CODE_REVIEW_HTML_SECTIONS = [
   "Summary",
@@ -50,9 +51,9 @@ function validateArtifactPair(
       "Code review artifacts.json must identify the JSON file being validated.",
     );
   }
-  const match = basename(expectedJsonPath).match(/^(code-review-v[0-9]+)\.json$/);
+  const match = matchArtifactFileName(basename(expectedJsonPath), "code-review");
   if (!match) {
-    throw new Error("Code review JSON filename must use code-review-vNNN.json.");
+    throw new Error("Code review JSON filename must use code-review[-<work label>]-vNNN.json.");
   }
   const expectedHtmlPath = join(dirname(expectedJsonPath), `${match[1]!}.html`);
   if (resolve(value.artifacts.html) !== resolve(expectedHtmlPath)) {
@@ -171,7 +172,7 @@ if (isDirectExecution(import.meta.url, process.argv[1])) {
   const path = args.find((arg) => !arg.startsWith("--"));
   if (!path) {
     process.stderr.write(
-      "Usage: npm run validate:assisted-code-review -- <code-review-vNNN.json> [--fresh]\n",
+      "Usage: npm run validate:assisted-code-review -- <code-review[-<work label>]-vNNN.json> [--fresh]\n",
     );
     process.exitCode = 1;
   } else {

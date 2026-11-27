@@ -34,7 +34,7 @@ person takes the screenshots and drops them in.
 ## Commands (run by the agent)
 
 ```
-npm run artifact:path -- --application <app> --request user-guide --base user-guide --extension html --extension json
+npm run artifact:path -- --application <app> --base user-guide --extension html --extension json
 npm run report:render -- <user-guide-vNNN.json>
 npm run validate:assisted-user-guide -- <user-guide-vNNN.json>
 ```

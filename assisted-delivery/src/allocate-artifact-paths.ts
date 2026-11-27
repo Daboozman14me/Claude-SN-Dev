@@ -4,9 +4,13 @@ interface Arguments {
   baseName: string;
   extensions: string[];
   applicationName?: string;
-  requestSlug: string;
+  workLabel?: string;
+  program?: string;
   explicitRoot?: string;
 }
+
+const USAGE =
+  "Usage: --base <name> --extension <ext> [--extension <ext>] [--application <name>] [--label <work label>] [--program <alias>] [--root <path>]";
 
 function parseArguments(argv: string[]): Arguments {
   const values = new Map<string, string>();
@@ -26,19 +30,19 @@ function parseArguments(argv: string[]): Arguments {
   }
 
   const baseName = values.get("--base");
-  const requestSlug = values.get("--request");
-  if (!baseName || !requestSlug || extensions.length === 0) {
-    throw new Error(
-      "Usage: --base <name> --request <slug> --extension <ext> [--extension <ext>] [--application <name>] [--root <path>]",
-    );
+  if (!baseName || extensions.length === 0) {
+    throw new Error(USAGE);
   }
+  // --request is the older name for the work label.
+  const workLabel = values.get("--label") ?? values.get("--request");
   return {
     baseName,
     extensions,
-    requestSlug,
+    ...(workLabel ? { workLabel } : {}),
     ...(values.has("--application")
       ? { applicationName: values.get("--application")! }
       : {}),
+    ...(values.has("--program") ? { program: values.get("--program")! } : {}),
     ...(values.has("--root") ? { explicitRoot: values.get("--root")! } : {}),
   };
 }

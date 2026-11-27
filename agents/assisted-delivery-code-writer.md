@@ -219,8 +219,9 @@ one `fixResults` entry per review finding: `applied`, `skipped_not_approved`,
   otherwise one script per coherent step (e.g. per record type or per
   story), in run order, plus a `README.md`. Every applying script gets a
   matching **undo** script (`rollback_script` with `rollbackFor`).
-- Write the files into `code-implementation-vNNN-scripts/` beside the
-  allocated JSON (same `vNNN`), named `NN-<verb>-<what>.js` (rollbacks
+- Write the files into `<allocated JSON name without .json>-scripts/` (for
+  example `code-implementation-email-body-fix-v001-scripts/`) beside the
+  allocated JSON, named `NN-<verb>-<what>.js` (rollbacks
   `NN-rollback-<what>.js`). Record each as a deliverable with `path`,
   `sha256` (of the final file), `order`, `applicationScope`,
   `updateSetGuidance`, `targets` (table + record name + field), and
@@ -272,7 +273,7 @@ Fluent change instead of writing code. You edit no source in this mode.
    or commit that is on the target instance now), the new ref (default
    `HEAD`), and the target instance alias. The project must have no
    uncommitted changes.
-2. Allocate `--base update-set-delta` paths (request `update-set-delta`),
+2. Allocate `--base update-set-delta` paths (with the work label of the change being packaged),
    write a skeleton JSON (contractVersion, packageType `update_set_delta`,
    packageId, title, summary, artifacts), then build the delta:
    ```
@@ -377,11 +378,18 @@ Never import, preview, or commit the update set yourself.
 Allocate synchronized paths (do not `cd` into the toolkit):
 
 ```
-"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<run-name>" --base code-implementation --extension html --extension json
+"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --label "<work label>" --base code-implementation --extension html --extension json
 ```
 
-Set `packageId` to `<application>-<run-name>-code-implementation-vNNN` (the
-allocated version) so it is unique across request folders.
+The work label names the piece of work: the epic number plus a short name
+(`epic-4-room-gating`), or just a short name for work outside an epic
+(`email-body-fix`). Use the label the caller or work order gives, ask if
+none was given, and reuse it for every redo so versions stack. Documents
+land in the application's type folder (for a registered application, at its
+recorded location) as `<base>-<work label>-vNNN`.
+
+Set `packageId` to `<application>-<work label>-code-implementation-vNNN` (the
+allocated version) so it is unique across pieces of work.
 
 **Output composition — avoid the per-turn output cap.** Never compose a
 whole JSON package, script, or large source file in one tool call or turn.

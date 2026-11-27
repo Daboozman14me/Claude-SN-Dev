@@ -35,7 +35,8 @@
     "update-set:precheck": "tsx src/precheck-update-set-delta.ts",
     "validate:assisted-update-set-delta": "tsx src/validate-assisted-update-set-delta.ts",
     "evals": "tsx src/run-evals.ts",
-    "evidence:mask": "tsx src/mask-evidence.ts"
+    "evidence:mask": "tsx src/mask-evidence.ts",
+    "artifacts:migrate": "tsx src/migrate-artifacts.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

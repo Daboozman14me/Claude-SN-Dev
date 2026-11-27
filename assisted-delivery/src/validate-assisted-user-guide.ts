@@ -4,12 +4,13 @@ import { userGuidePackageSchema, type UserGuidePackage } from "./assisted-contra
 import { sha256Hex } from "./build-backlog.js";
 import { isDirectExecution } from "./direct-execution.js";
 import { renderUserGuideHtml } from "./render-report-html.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 function validateArtifactPair(value: UserGuidePackage, jsonPath: string): string {
   const expectedJson = resolve(jsonPath);
   if (resolve(value.artifacts.json) !== expectedJson) throw new Error("User guide artifacts.json must identify the JSON file being validated.");
-  const match = basename(expectedJson).match(/^(user-guide-v[0-9]+)\.json$/);
-  if (!match) throw new Error("User guide JSON filename must use user-guide-vNNN.json.");
+  const match = matchArtifactFileName(basename(expectedJson), "user-guide");
+  if (!match) throw new Error("User guide JSON filename must use user-guide[-<work label>]-vNNN.json.");
   const expectedHtml = join(dirname(expectedJson), `${match[1]!}.html`);
   if (resolve(value.artifacts.html) !== resolve(expectedHtml)) throw new Error("User guide HTML must share the JSON report directory and version.");
   if (!existsSync(expectedHtml)) throw new Error(`User guide HTML artifact does not exist: '${expectedHtml}'.`);
@@ -74,7 +75,7 @@ export function validateAssistedUserGuideFile(jsonPath: string): UserGuidePackag
 if (isDirectExecution(import.meta.url, process.argv[1])) {
   const jsonPath = process.argv[2];
   try {
-    if (!jsonPath) throw new Error("Usage: npm run validate:assisted-user-guide -- <user-guide-vNNN.json>");
+    if (!jsonPath) throw new Error("Usage: npm run validate:assisted-user-guide -- <user-guide[-<work label>]-vNNN.json>");
     const value = validateAssistedUserGuideFile(jsonPath);
     const sections = value.parts.reduce((sum, part) => sum + part.sections.length, 0);
     process.stdout.write(`Valid User Guide: ${value.packageId} (${sections} sections, ${value.featureCoverage.length} stories accounted for)\n`);

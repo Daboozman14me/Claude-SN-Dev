@@ -37,6 +37,16 @@ const EXPECTED_AGENTS = [
   "assisted-delivery-supervisor",
 ];
 
+test("every agent allocates documents by work label, never by request folder", () => {
+  for (const name of EXPECTED_AGENTS.filter((agent) => !DISABLED_AGENTS.has(agent))) {
+    const agent = readAgent(name);
+    assert.doesNotMatch(agent, /--request\b/, `${name} still allocates by request folder`);
+    if (/--label "<work label>"/.test(agent)) {
+      assert.match(agent, /reuse it for every redo so versions stack/, `${name} explains the work label`);
+    }
+  }
+});
+
 test("every assisted-delivery agent is present and readable", () => {
   for (const name of EXPECTED_AGENTS) {
     assert.doesNotThrow(
@@ -130,7 +140,7 @@ test("code writer works from a confirmed work order in the output form the human
   assert.match(agent, /\*\*safe to re-run\*\*/);
   assert.match(agent, /matching \*\*undo\*\* script \(`rollback_script` with `rollbackFor`\)/);
   assert.match(agent, /`README\.md` \(required when there is more than one script\)/);
-  assert.match(agent, /code-implementation-vNNN-scripts\//);
+  assert.match(agent, /<allocated JSON name without \.json>-scripts\//);
   assert.match(agent, /<!-- deliverable:D-NN -->/);
   assert.match(agent, /<!-- paste:D-NN -->/);
   assert.match(agent, /\*\*full\s+current\s+code\s+beside\s+the\s+full\s+new\s+code\*\*/);
@@ -237,6 +247,11 @@ test("user guide agent describes only delivered work and checks every name it pr
 
 test("supervisor routes the complete assisted workflow", () => {
   const agent = readAgent("assisted-delivery-supervisor");
+  assert.match(agent, /\*\*Work label\.\*\*/);
+  assert.match(agent, /\*\*Never hold\s+up a request just to ask for a label\.\*\*/);
+  assert.match(agent, /pick the label yourself, delegate straight away/);
+  assert.match(agent, /pass that same\s+label to every specialist for that work/);
+  assert.match(agent, /known differences, work label \(rule 18\)/);
   assert.match(agent, /assisted-delivery-user-guide/);
   assert.match(agent, /A guide describes only\s+delivered work/);
   assert.match(agent, /assisted-delivery-research/);
@@ -320,7 +335,7 @@ test("test design creates traceable batch plans without execution", () => {
   assert.match(agent, /source=inferred/);
   assert.match(agent, /coverageGap/);
   assert.match(agent, /Every Story and every criterion/);
-  assert.match(agent, /internal[\\/]test-plan-vNNN\.json/);
+  assert.match(agent, /internal\/<allocated file name>\.json/);
   assert.match(agent, /writes of any kind to ServiceNow,\s+VersionOne\/Jira\/ServiceNow Agile/);
 });
 
@@ -342,7 +357,7 @@ test("technical design supports creation and advisory evaluation", () => {
 test("research is comprehensive and isolates raw evidence", () => {
   const agent = readAgent("assisted-delivery-research");
   assert.match(agent, /read-only/i);
-  assert.match(agent, /evidence[\\/]application-research-vNNN/);
+  assert.match(agent, /evidence\/<allocated file name without extension>\//);
   assert.match(agent, /embed complete query responses/);
   assert.match(agent, /current-state research limitations/);
   assert.match(agent, /Do not search for internal artifacts named after an external system/);

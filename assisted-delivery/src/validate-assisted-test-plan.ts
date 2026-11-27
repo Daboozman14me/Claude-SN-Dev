@@ -5,6 +5,7 @@ import {
   type TestPlanPackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 function visibleMarkdown(source: string): string {
   return source
@@ -228,9 +229,9 @@ export function validateAssistedTestPlanFile(path: string): string {
       "Test-plan JSON must be stored in the report's internal subfolder.",
     );
   }
-  const match = basename(absolutePath).match(/^(test-plan-v[0-9]+)\.json$/);
+  const match = matchArtifactFileName(basename(absolutePath), "test-plan");
   if (!match) {
-    throw new Error("Test-plan JSON filename must use test-plan-vNNN.json.");
+    throw new Error("Test-plan JSON filename must use test-plan[-<work label>]-vNNN.json.");
   }
   const reportDirectory = dirname(dirname(absolutePath));
   const markdownPath = join(reportDirectory, `${match[1]!}.md`);

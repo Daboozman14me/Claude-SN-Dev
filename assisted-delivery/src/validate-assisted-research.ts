@@ -6,6 +6,7 @@ import {
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
 import { findPersonalData } from "./mask-evidence.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 export const MAX_ASSISTED_RESEARCH_BYTES = 2 * 1_024 * 1_024;
 const PROPOSED_DESIGN_PATTERN =
@@ -103,12 +104,10 @@ function validateDeliveredResearchArtifacts(
       "Research artifacts.json must identify the JSON file being validated.",
     );
   }
-  const match = basename(expectedJsonPath).match(
-    /^(application-research-v[0-9]+)\.json$/,
-  );
+  const match = matchArtifactFileName(basename(expectedJsonPath), "application-research");
   if (!match) {
     throw new Error(
-      "Research JSON filename must use application-research-vNNN.json.",
+      "Research JSON filename must use application-research[-<work label>]-vNNN.json.",
     );
   }
   const reportDirectory = dirname(expectedJsonPath);

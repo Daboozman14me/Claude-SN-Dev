@@ -5,6 +5,7 @@ import {
   type TechnicalDesignPackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 const PROHIBITED_OUTCOME_PATTERN =
   /\b(?:(?:design|technical design|solution|implementation)\s+(?:is|has been|was)\s+(?:approved|rejected|authorized|certified(?: as)? ready|ready\s+for\s+implementation)|(?:approved|rejected|certified|authorized)\s+for\s+implementation|implementation\s+(?:is\s+)?authorized|authorize[sd]?\s+(?:the\s+)?implementation|implementation\s+(?:may|can|should)\s+proceed|certif(?:y|ies|ied)\b.{0,60}\bready\s+for\s+implementation|(?:sign[- ]off|approval status|quality gate)\s*:\s*(?:approved|passed|complete))\b/gi;
@@ -274,12 +275,10 @@ export function validateAssistedTechnicalDesignFile(path: string): string {
       "Technical-design artifacts.json must identify the JSON file being validated.",
     );
   }
-  const match = basename(absolutePath).match(
-    /^(technical-design-v[0-9]+)\.json$/,
-  );
+  const match = matchArtifactFileName(basename(absolutePath), "technical-design");
   if (!match) {
     throw new Error(
-      "Technical-design JSON filename must use technical-design-vNNN.json.",
+      "Technical-design JSON filename must use technical-design[-<work label>]-vNNN.json.",
     );
   }
   const markdownPath = join(dirname(absolutePath), `${match[1]!}.md`);

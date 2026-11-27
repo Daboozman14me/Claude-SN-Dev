@@ -5,6 +5,7 @@ import { completionReportPackageSchema } from "./assisted-contracts.js";
 import { composeCompletionReport, renderCompletionReportHtml } from "./compose-completion-report.js";
 import { isDirectExecution } from "./direct-execution.js";
 import { fileSha256 } from "./validate-assisted-code-review.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 export interface CompletionReportValidationOptions {
   // Recompose from the implementation and review on disk and require an exact match.
@@ -14,8 +15,8 @@ export interface CompletionReportValidationOptions {
 export function validateCompletionReportFile(path: string, options: CompletionReportValidationOptions = {}): string {
   const jsonPath = resolve(path);
   const value = completionReportPackageSchema.parse(JSON.parse(readFileSync(jsonPath, "utf8")) as unknown);
-  const match = basename(jsonPath).match(/^(completion-report-v[0-9]+)\.json$/);
-  if (!match) throw new Error("Completion report JSON filename must use completion-report-vNNN.json.");
+  const match = matchArtifactFileName(basename(jsonPath), "completion-report");
+  if (!match) throw new Error("Completion report JSON filename must use completion-report[-<work label>]-vNNN.json.");
   if (resolve(value.artifacts.json) !== jsonPath) {
     throw new Error("Completion report artifacts.json must identify the JSON file being validated.");
   }
@@ -49,7 +50,7 @@ if (isDirectExecution(import.meta.url, process.argv[1])) {
   const args = process.argv.slice(2);
   const path = args.find((arg) => !arg.startsWith("--"));
   if (!path) {
-    process.stderr.write("Usage: npm run validate:assisted-completion-report -- <completion-report-vNNN.json> [--fresh]\n");
+    process.stderr.write("Usage: npm run validate:assisted-completion-report -- <completion-report[-<work label>]-vNNN.json> [--fresh]\n");
     process.exitCode = 1;
   } else {
     try {

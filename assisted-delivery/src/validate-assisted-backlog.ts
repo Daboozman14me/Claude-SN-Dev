@@ -8,12 +8,13 @@ import {
 import { buildBacklogRecords, planImportFiles, readStoryDraft, sha256Hex } from "./build-backlog.js";
 import { isDirectExecution } from "./direct-execution.js";
 import { renderBacklogHtml } from "./render-report-html.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 function validateArtifactPair(value: BacklogPackage, jsonPath: string): string {
   const expectedJson = resolve(jsonPath);
   if (resolve(value.artifacts.json) !== expectedJson) throw new Error("Backlog artifacts.json must identify the JSON file being validated.");
-  const match = basename(expectedJson).match(/^(backlog-v[0-9]+)\.json$/);
-  if (!match) throw new Error("Backlog JSON filename must use backlog-vNNN.json.");
+  const match = matchArtifactFileName(basename(expectedJson), "backlog");
+  if (!match) throw new Error("Backlog JSON filename must use backlog[-<work label>]-vNNN.json.");
   const expectedHtml = join(dirname(expectedJson), `${match[1]!}.html`);
   if (resolve(value.artifacts.html) !== resolve(expectedHtml)) throw new Error("Backlog HTML must share the JSON report directory and version.");
   if (!existsSync(expectedHtml)) throw new Error(`Backlog HTML artifact does not exist: '${expectedHtml}'.`);
@@ -100,7 +101,7 @@ if (isDirectExecution(import.meta.url, process.argv[1])) {
   const args = process.argv.slice(2);
   const jsonPath = args.find((arg) => !arg.startsWith("--"));
   try {
-    if (!jsonPath) throw new Error("Usage: npm run validate:assisted-backlog -- <backlog-vNNN.json> [--verified]");
+    if (!jsonPath) throw new Error("Usage: npm run validate:assisted-backlog -- <backlog[-<work label>]-vNNN.json> [--verified]");
     const value = validateAssistedBacklogFile(jsonPath, { verified: args.includes("--verified") });
     process.stdout.write(`Valid Backlog Package: ${value.packageId} (${value.records.length} records, modes ${value.modes.join("+")})\n`);
   } catch (error) {

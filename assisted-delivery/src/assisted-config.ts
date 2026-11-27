@@ -15,7 +15,7 @@ export const artifactStoragePolicySchema = z.object({
   folderPattern: z
     .string()
     .min(1)
-    .default(join("{application-slug}", "{request-slug}")),
+    .default(join("{application-slug}", "{type-folder}")),
   versionDigits: z.number().int().min(1).max(6).default(3),
 }).strict();
 

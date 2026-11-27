@@ -237,7 +237,7 @@ completion report the human reads:
    Report gaps the change leaves open (for example a validation that only
    runs on insert) as findings.
 5. Allocate with the implementation's application and
-   `--request "<implementation request name>-review"`, write and validate
+   the implementation's own work label (`--label`), write and validate
    the review (`--fresh`) as below, then compose the completion report:
 
    ```
@@ -245,7 +245,7 @@ completion report the human reads:
    "$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/validate-assisted-completion-report.ts" "<completion-report.json>" --fresh
    ```
 
-   The composer writes `completion-report-vNNN.html/.json` beside the
+   The composer writes `completion-report-<work label>-vNNN.html/.json` beside the
    implementation report; never write or edit those files yourself. If it
    refuses (for example, the review missed a changed file), fix the review,
    re-validate, and compose again.
@@ -255,13 +255,20 @@ completion report the human reads:
 Allocate synchronized paths (application `general` if none is known):
 
 ```
-"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<review-name>" --base code-review --extension html --extension json
+"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --label "<work label>" --base code-review --extension html --extension json
 ```
 
+The work label names the piece of work: the epic number plus a short name
+(`epic-4-room-gating`), or just a short name for work outside an epic
+(`email-body-fix`). Use the label the caller or work order gives, ask if
+none was given, and reuse it for every redo so versions stack. Documents
+land in the application's type folder (for a registered application, at its
+recorded location) as `<base>-<work label>-vNNN`.
+
 Set `artifacts.html` and `artifacts.json` to the exact allocated paths, and
-set `packageId` to `<application>-<review-name>-code-review-vNNN` (the
-allocated version) so it is unique across request folders. A
-re-review of the same code uses the same `--request`, so it becomes the next
+set `packageId` to `<application>-<work label>-code-review-vNNN` (the
+allocated version) so it is unique across pieces of work. A
+re-review of the same code uses the same `--label`, so it becomes the next
 version alongside the prior one.
 
 **Output composition — avoid the per-turn output cap.** Never compose the

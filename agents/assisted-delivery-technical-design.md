@@ -147,8 +147,15 @@ the toolkit; use `--root` only if the user supplied one; never overwrite an
 existing version):
 
 ```
-"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base technical-design --extension md --extension json
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --label "<work label>" --base technical-design --extension md --extension json
 ```
+
+The work label names the piece of work: the epic number plus a short name
+(`epic-4-room-gating`), or just a short name for work outside an epic
+(`email-body-fix`). Use the label the caller or work order gives, ask if
+none was given, and reuse it for every redo so versions stack. Documents
+land in the application's type folder (for a registered application, at its
+recorded location) as `<base>-<work label>-vNNN`.
 
 Create one detailed Markdown report and one `TechnicalDesignPackage` JSON
 with the same version.

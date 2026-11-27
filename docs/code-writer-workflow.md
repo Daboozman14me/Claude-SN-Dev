@@ -93,9 +93,9 @@ questions instead of a guess. Answer them and start a new run.
     - logs each action with `gs.info('[D-NN] …')`;
     - comes with an undo script.
 
-Output goes to `ServiceNow-Assisted\Artifacts\<application>\<run-name>\`:
-`code-implementation-vNNN.html/.json`, plus a
-`code-implementation-vNNN-scripts\` folder for script forms. The validator
+Output goes to the application's `code\` folder (see
+[document-layout.md](document-layout.md)): `code-implementation-<work label>-vNNN.html/.json`, plus a
+`code-implementation-<work label>-vNNN-scripts\` folder for script forms. The validator
 checks every file against its recorded hash and checks the script
 conventions above.
 

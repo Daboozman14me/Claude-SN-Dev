@@ -11,6 +11,7 @@ import {
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
 import { fileSha256, readCodeReviewPackage } from "./validate-assisted-code-review.js";
+import { parseArtifactFileName } from "./artifact-layout.js";
 
 const SCRIPT_KINDS = new Set(["background_script", "fix_script", "rollback_script"]);
 
@@ -256,14 +257,17 @@ ${sections.join("\n")}
 `;
 }
 
-// Next free completion-report-vNNN pair beside the implementation report, reserved atomically.
+// Next free completion-report[-<work label>]-vNNN pair beside the implementation report (same work
+// label), reserved atomically.
 function allocateBeside(implementationPath: string): { html: string; json: string } {
   const directory = dirname(resolve(implementationPath));
-  const digits = basename(implementationPath).match(/-v([0-9]+)\.json$/)?.[1]?.length ?? 3;
+  const parsed = parseArtifactFileName(basename(implementationPath), "code-implementation", "json");
+  const digits = parsed?.versionLabel.length ? parsed.versionLabel.length - 1 : 3;
+  const stemBase = parsed?.label ? `completion-report-${parsed.label}` : "completion-report";
   const reservations = join(directory, ".reservations");
   mkdirSync(reservations, { recursive: true });
   for (let version = 1; version < 10 ** digits; version += 1) {
-    const label = `completion-report-v${String(version).padStart(digits, "0")}`;
+    const label = `${stemBase}-v${String(version).padStart(digits, "0")}`;
     const paths = { html: join(directory, `${label}.html`), json: join(directory, `${label}.json`) };
     if (existsSync(paths.html) || existsSync(paths.json)) continue;
     try {

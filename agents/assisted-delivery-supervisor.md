@@ -204,8 +204,8 @@ tool, using its exact name as `subagent_type`.
       stops the run.
    7. **Read back the work order** — app form, location, target
       application / scope / instance alias, output form, change source, run
-      scope, known differences — and get an explicit go. Record the time it
-      was confirmed.
+      scope, known differences, work label (rule 18) — and get an explicit
+      go. Record the time it was confirmed.
    Then delegate with the work order passed explicitly as structured fields.
    When you yourself run as a background subagent and cannot ask the user,
    take every intake answer from the caller's request; if any is missing,
@@ -271,6 +271,20 @@ tool, using its exact name as `subagent_type`.
    outcome, technical-design mode/source, authoritative Story sources,
    target program/application, code location, or stories to implement are
    genuinely ambiguous.
+18. **Work label.** Every document an agent writes is named
+   `<type>-<work label>-vNNN` inside the application's type folder
+   (`research`, `design`, `stories`, `tests`, `code`, `reviews`, ...). The
+   label is the epic number plus a short name (`epic-4-room-gating`), or a
+   short name alone for work outside an epic (`email-body-fix`). **Never hold
+   up a request just to ask for a label.** When the work has an intake (code
+   writing), propose the label in the work-order read-back so it is
+   confirmed with everything else. Otherwise (research, a review, a design,
+   stories) pick the label yourself, delegate straight away, and mention it
+   in your reply so the user can rename the work later. Then pass that same
+   label to every specialist for that work — research, design, stories,
+   tests, code, review — so its documents line up and redos become new
+   versions. App-wide documents (the backlog, the user guide) take no
+   label. Never invent a different label for the same work.
 
 ## Product behavior
 

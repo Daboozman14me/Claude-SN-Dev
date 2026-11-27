@@ -160,12 +160,20 @@ running (do not `cd` into the toolkit — this preserves your actual working
 directory for any relative inputs):
 
 ```
-"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base application-research --extension md --extension json
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --label "<work label>" --base application-research --extension md --extension json
 ```
 
+The work label names the piece of work: the epic number plus a short name
+(`epic-4-room-gating`), or just a short name for work outside an epic
+(`email-body-fix`). Use the label the caller or work order gives, ask if
+none was given, and reuse it for every redo so versions stack. Documents
+land in the application's type folder (for a registered application, at its
+recorded location) as `<base>-<work label>-vNNN`.
+
 Under the allocated directory, create a version-specific evidence directory:
-`evidence/application-research-vNNN/` (matching the allocated version
-number). Store raw `now-sdk query` output only in that evidence directory,
+`evidence/<allocated file name without extension>/` (for example
+`evidence/application-research-epic-4-room-gating-v001/`, matching the
+allocated name and version). Store raw `now-sdk query` output only in that evidence directory,
 using concise descriptive filenames. Never place scratch files, partial
 packages, or raw query transcripts beside the final reports.
 

@@ -71,7 +71,16 @@ test("code review validator enforces artifact naming", () => {
   const renamed = join(directory, "review.json");
   writeFileSync(renamed, readFileSync(jsonPath));
   rewriteJson(renamed, (value) => (value.artifacts.json = renamed));
-  assert.throws(() => validateAssistedCodeReviewFile(renamed), /must use code-review-vNNN\.json/);
+  assert.throws(() => validateAssistedCodeReviewFile(renamed), /must use code-review\[-<work label>\]-vNNN\.json/);
+  const labeledJson = join(directory, "code-review-epic-4-room-gating-v001.json");
+  const labeledHtml = join(directory, "code-review-epic-4-room-gating-v001.html");
+  writeFileSync(labeledJson, readFileSync(jsonPath));
+  writeFileSync(labeledHtml, readFileSync(htmlPath));
+  rewriteJson(labeledJson, (value) => {
+    value.artifacts.json = labeledJson;
+    value.artifacts.html = labeledHtml;
+  });
+  assert.equal(validateAssistedCodeReviewFile(labeledJson), labeledJson, "a work label in the name is valid");
   unlinkSync(htmlPath);
   assert.throws(() => validateAssistedCodeReviewFile(jsonPath), /HTML artifact does not exist/);
 });

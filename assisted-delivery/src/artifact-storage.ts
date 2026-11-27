@@ -3,12 +3,15 @@ import {
   mkdirSync,
   writeFileSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
+import { artifactTypeFolder } from "./artifact-layout.js";
 import {
   type ArtifactStoragePolicy,
   DEFAULT_ASSISTED_CONFIG_PATH,
   loadAssistedConfiguration,
 } from "./assisted-config.js";
+import { findProjectSetup, type ResolvedProjectSetup } from "./read-project-setup.js";
 
 export {
   artifactStoragePolicySchema,
@@ -19,7 +22,13 @@ export interface AllocateArtifactVersionInput {
   baseName: string;
   extensions: string[];
   applicationName?: string;
-  requestSlug: string;
+  // The piece of work (epic number plus short name, e.g. "epic-4-room-gating"); part of the file name.
+  workLabel?: string;
+  // Older name for the work label, still accepted.
+  requestSlug?: string;
+  // Program alias, needed only when the application is registered in more than one program.
+  program?: string;
+  registryPath?: string;
   explicitRoot?: string;
   projectRoot?: string;
   environment?: NodeJS.ProcessEnv;
@@ -31,6 +40,8 @@ export interface AllocatedArtifactVersion {
   versionLabel: string;
   paths: Record<string, string>;
   policySource: string;
+  // Set when the application is registered: documents go to its recorded location.
+  registeredApplication?: { application: string; program: string };
 }
 
 function expandEnvironmentVariables(
@@ -73,11 +84,16 @@ export function loadArtifactStoragePolicy(
 function renderFolderPattern(
   pattern: string,
   applicationSlug: string,
-  requestSlug: string,
+  requestSlug: string | undefined,
+  typeFolder: string,
 ): string {
+  if (pattern.includes("{request-slug}") && !requestSlug) {
+    throw new Error("This team's artifact folderPattern uses {request-slug}; pass a work label.");
+  }
   const rendered = pattern
     .replaceAll("{application-slug}", applicationSlug)
-    .replaceAll("{request-slug}", requestSlug);
+    .replaceAll("{request-slug}", requestSlug ?? "")
+    .replaceAll("{type-folder}", typeFolder);
   if (
     rendered.includes("{") ||
     rendered.includes("}") ||
@@ -86,10 +102,28 @@ function renderFolderPattern(
     rendered.split(/[\\/]+/).some((segment) => segment === "..")
   ) {
     throw new Error(
-      "Artifact folderPattern must be relative and may use only {application-slug} and {request-slug} placeholders.",
+      "Artifact folderPattern must be relative and may use only {application-slug}, {type-folder} and {request-slug} placeholders.",
     );
   }
   return rendered;
+}
+
+// Where a registered application's documents live: its manifest folder, or a folder named for it under
+// the program's root (a local folder, the OneDrive-synced copy of a SharePoint library, or the git clone).
+export function registeredApplicationFolder(resolved: ResolvedProjectSetup): string {
+  const { program, manifest, project } = resolved;
+  const programRoot =
+    program.localRoot ??
+    (program.storageType === "git"
+      ? join(homedir(), "ServiceNow-Assisted", "Programs", program.alias)
+      : manifest.root ?? program.location);
+  if (/^https?:/i.test(programRoot)) {
+    throw new Error(
+      `Program '${program.alias}' is recorded only as ${programRoot}. Record the OneDrive-synced folder of that library (localRoot) so documents can be written there.`,
+    );
+  }
+  const folder = project.folder ?? slugifyArtifactName(project.application);
+  return isAbsolute(folder) ? resolve(folder) : resolve(programRoot, folder);
 }
 
 function normalizeExtensions(extensions: string[]): string[] {
@@ -115,24 +149,44 @@ export function allocateArtifactVersion(
   const projectRoot = resolve(input.projectRoot ?? process.cwd());
   const environment = input.environment ?? process.env;
   const { policy, source } = loadArtifactStoragePolicy(projectRoot);
-  const configuredRoot = input.explicitRoot ?? policy.defaultRoot;
-  const expandedRoot = expandEnvironmentVariables(configuredRoot, environment);
   const applicationSlug = slugifyArtifactName(
     input.applicationName ?? "general",
   );
-  const requestSlug = slugifyArtifactName(input.requestSlug);
+  const rawLabel = input.workLabel ?? input.requestSlug;
+  const workLabel = rawLabel ? slugifyArtifactName(rawLabel) : undefined;
   const baseName = slugifyArtifactName(input.baseName);
   const extensions = normalizeExtensions(input.extensions);
+  const typeFolder = artifactTypeFolder(baseName);
+
+  // Precedence: an explicit path, then the application's registered location, then the team or
+  // built-in default (which unregistered applications and eval sandboxes use).
+  const registered =
+    input.explicitRoot || !input.applicationName
+      ? undefined
+      : findProjectSetup(input.applicationName, {
+          registryPath: input.registryPath,
+          program: input.program,
+        });
+  const pattern = registered ? "{type-folder}" : policy.folderPattern;
+  // A legacy pattern with {request-slug} keeps the label in the folder name instead of the file name.
+  const labelInFolder = pattern.includes("{request-slug}");
+  const stemBase = workLabel && !labelInFolder ? `${baseName}-${workLabel}` : baseName;
   const renderedFolder = renderFolderPattern(
-    policy.folderPattern,
+    pattern,
     applicationSlug,
-    requestSlug,
+    workLabel,
+    typeFolder,
   );
+  const fallbackRoot = registered
+    ? undefined
+    : expandEnvironmentVariables(input.explicitRoot ?? policy.defaultRoot, environment);
   const directory = (() => {
     try {
-      const root = isAbsolute(expandedRoot)
-        ? resolve(expandedRoot)
-        : resolve(projectRoot, expandedRoot);
+      const root = registered
+        ? registeredApplicationFolder(registered)
+        : isAbsolute(fallbackRoot!)
+          ? resolve(fallbackRoot!)
+          : resolve(projectRoot, fallbackRoot!);
       const target = resolve(root, renderedFolder);
       const relativeTarget = relative(root, target);
       if (
@@ -145,6 +199,7 @@ export function allocateArtifactVersion(
       mkdirSync(target, { recursive: true });
       return target;
     } catch (error) {
+      if (error instanceof Error && error.message.includes("OneDrive-synced")) throw error;
       throw new Error(
         `Unable to create the configured artifact directory. Provide a writable output path or update '${DEFAULT_ASSISTED_CONFIG_PATH}'.`,
         { cause: error },
@@ -161,7 +216,7 @@ export function allocateArtifactVersion(
     const paths = Object.fromEntries(
       extensions.map((extension) => [
         extension,
-        join(directory, `${baseName}-${versionLabel}.${extension}`),
+        join(directory, `${stemBase}-${versionLabel}.${extension}`),
       ]),
     );
     if (Object.values(paths).some((path) => existsSync(path))) {
@@ -169,7 +224,7 @@ export function allocateArtifactVersion(
     }
     const reservationPath = join(
       reservationDirectory,
-      `${baseName}-${versionLabel}.reserve`,
+      `${stemBase}-${versionLabel}.reserve`,
     );
     try {
       writeFileSync(reservationPath, `${new Date().toISOString()}\n`, {
@@ -194,7 +249,19 @@ export function allocateArtifactVersion(
       version,
       versionLabel,
       paths,
-      policySource: input.explicitRoot ? "explicit user path" : source,
+      policySource: input.explicitRoot
+        ? "explicit user path"
+        : registered
+          ? `registered application (program ${registered.program.alias})`
+          : source,
+      ...(registered
+        ? {
+            registeredApplication: {
+              application: registered.project.application,
+              program: registered.program.alias,
+            },
+          }
+        : {}),
     };
   }
 

@@ -11,8 +11,8 @@ folder or files: scripts, an update-set / application XML export, or a
 Fluent project. Optionally name the application, instance alias, and focus
 areas.
 
-It produces `code-review-vNNN.html` and `code-review-vNNN.json` under
-`ServiceNow-Assisted\Artifacts\<application>\<review-name>\`. Each finding
+It produces `code-review-<work label>-vNNN.html` and `.json` in the
+application's `reviews\` folder (see [document-layout.md](document-layout.md)). Each finding
 has an ID (`F-001`…), severity, category, confidence, exact file and lines,
 the current code, a suggested replacement, the reason, the ServiceNow
 practice involved, and any read-only instance check. Every decision starts

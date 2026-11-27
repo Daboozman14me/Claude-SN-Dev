@@ -5,6 +5,7 @@ import {
   type LevelOfEffortPackage,
 } from "./assisted-contracts.js";
 import { isDirectExecution } from "./direct-execution.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 export function validateAssistedLoeJson(json: string): void {
   levelOfEffortPackageSchema.parse(JSON.parse(json) as unknown);
@@ -20,12 +21,10 @@ function validateArtifactSet(
       "Level-of-effort artifacts.json must identify the JSON file being validated.",
     );
   }
-  const match = basename(expectedJsonPath).match(
-    /^(level-of-effort-v[0-9]+)\.json$/,
-  );
+  const match = matchArtifactFileName(basename(expectedJsonPath), "level-of-effort");
   if (!match) {
     throw new Error(
-      "Level-of-effort JSON filename must use level-of-effort-vNNN.json.",
+      "Level-of-effort JSON filename must use level-of-effort[-<work label>]-vNNN.json.",
     );
   }
   const expectedHtmlPath = join(dirname(expectedJsonPath), `${match[1]!}.html`);

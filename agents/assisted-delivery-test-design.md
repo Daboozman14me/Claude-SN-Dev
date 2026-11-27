@@ -86,10 +86,18 @@ toolkit; use `--root` only if the user supplied one; never overwrite an
 existing version):
 
 ```
-"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base test-plan --extension md
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --label "<work label>" --base test-plan --extension md
 ```
 
-Derive the same-version machine sidecar as `internal/test-plan-vNNN.json`
+The work label names the piece of work: the epic number plus a short name
+(`epic-4-room-gating`), or just a short name for work outside an epic
+(`email-body-fix`). Use the label the caller or work order gives, ask if
+none was given, and reuse it for every redo so versions stack. Documents
+land in the application's type folder (for a registered application, at its
+recorded location) as `<base>-<work label>-vNNN`.
+
+Derive the same-version machine sidecar as `internal/<allocated file name>.json` (for example
+`internal/test-plan-epic-4-room-gating-vNNN.json`)
 beneath the allocated report directory (create the `internal` subfolder if
 it does not already exist). The JSON's parent folder must be named
 `internal` — the validator enforces this. The JSON is an internal

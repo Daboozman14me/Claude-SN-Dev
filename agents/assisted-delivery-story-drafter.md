@@ -153,8 +153,15 @@ Allocate synchronized `story-draft` HTML and JSON paths by running (do not
 overwrite an existing version):
 
 ```
-"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "<request>" --base story-draft --extension html --extension json
+"~/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "~/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --label "<work label>" --base story-draft --extension html --extension json
 ```
+
+The work label names the piece of work: the epic number plus a short name
+(`epic-4-room-gating`), or just a short name for work outside an epic
+(`email-body-fix`). Use the label the caller or work order gives, ask if
+none was given, and reuse it for every redo so versions stack. Documents
+land in the application's type folder (for a registered application, at its
+recorded location) as `<base>-<work label>-vNNN`.
 
 Write one self-contained HTML draft at the allocated path, presenting the
 Epics, their Stories, each Story's description/citations/acceptance

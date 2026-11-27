@@ -7,14 +7,15 @@ import { deltaUpdateSetName } from "./build-update-set-delta.js";
 import { isDirectExecution } from "./direct-execution.js";
 import { renderUpdateSetDeltaHtml } from "./render-report-html.js";
 import { diffAppTrees, readAppTree, renderDeltaUpdateSetXml, sha256Hex, treeManifestSha } from "./update-set-delta.js";
+import { matchArtifactFileName } from "./artifact-layout.js";
 
 const IMPORT_READY = new Set(["absent", "matches_baseline", "already_applied", "not_compared"]);
 
 function validateArtifactPair(value: UpdateSetDeltaPackage, jsonPath: string): string {
   const expectedJson = resolve(jsonPath);
   if (resolve(value.artifacts.json) !== expectedJson) throw new Error("Delta artifacts.json must identify the JSON file being validated.");
-  const match = basename(expectedJson).match(/^(update-set-delta-v[0-9]+)\.json$/);
-  if (!match) throw new Error("Delta JSON filename must use update-set-delta-vNNN.json.");
+  const match = matchArtifactFileName(basename(expectedJson), "update-set-delta");
+  if (!match) throw new Error("Delta JSON filename must use update-set-delta[-<work label>]-vNNN.json.");
   const expectedHtml = join(dirname(expectedJson), `${match[1]!}.html`);
   if (resolve(value.artifacts.html) !== resolve(expectedHtml)) throw new Error("Delta HTML must share the JSON report directory and version.");
   if (!existsSync(expectedHtml)) throw new Error(`Delta HTML artifact does not exist: '${expectedHtml}'.`);
@@ -90,7 +91,7 @@ if (isDirectExecution(import.meta.url, process.argv[1])) {
   const args = process.argv.slice(2);
   const jsonPath = args.find((arg) => !arg.startsWith("--"));
   try {
-    if (!jsonPath) throw new Error("Usage: npm run validate:assisted-update-set-delta -- <update-set-delta-vNNN.json> [--verified]");
+    if (!jsonPath) throw new Error("Usage: npm run validate:assisted-update-set-delta -- <update-set-delta[-<work label>]-vNNN.json> [--verified]");
     const value = validateAssistedUpdateSetDeltaFile(jsonPath, { verified: args.includes("--verified") });
     process.stdout.write(`Valid Update Set Delta: ${value.packageId} ('${value.updateSet.name}', ${value.entries.length} entries${args.includes("--verified") ? ", verified on the target" : ", import-ready"})\n`);
   } catch (error) {

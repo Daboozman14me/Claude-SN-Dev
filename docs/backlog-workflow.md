@@ -21,7 +21,7 @@ is `load` + `sync` in one package.
 All commands run from `~/.claude/assisted-delivery`; the agent runs them, not
 the owner.
 
-1. Allocate paths: `npm run artifact:path -- --application <app> --request backlog --base backlog --extension html --extension json`.
+1. Allocate paths: `npm run artifact:path -- --application <app> --base backlog --extension html --extension json`.
 2. Write the package skeleton: `storyDraft` (path, packageId, sha256 of the
    file), `plan` (releases, sprints, optional epic state overrides with the
    owner's reason), `storyStatus` (one per story, with evidence), and

@@ -88,7 +88,7 @@ writes to an instance.
 the toolkit):
 
 ```
-"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --request "user-guide" --base user-guide --extension html --extension json
+"$HOME/.claude/assisted-delivery/node_modules/.bin/tsx.cmd" "$HOME/.claude/assisted-delivery/src/allocate-artifact-paths.ts" --application "<application>" --base user-guide --extension html --extension json
 ```
 
 Set `packageId` to `<application>-user-guide-vNNN`. Read the package shape

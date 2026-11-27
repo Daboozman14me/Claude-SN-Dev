@@ -12,6 +12,7 @@ import { isDirectExecution } from "./direct-execution.js";
 import { walkDirectory } from "./index-code-review-sources.js";
 import { diffSnapshots, snapshotFluentProject } from "./snapshot-fluent-project.js";
 import { readCodeReviewPackage } from "./validate-assisted-code-review.js";
+import { artifactStemPattern, matchArtifactFileName } from "./artifact-layout.js";
 
 export interface CodeImplementationValidationOptions {
   // Recompute the project snapshot and require the declared changes to match the disk exactly.
@@ -19,7 +20,10 @@ export interface CodeImplementationValidationOptions {
 }
 
 const SCRIPT_KINDS = new Set(["background_script", "fix_script", "rollback_script"]);
-const REPORT_ENTRY = /^((code-implementation-v[0-9]+(\.html|\.json|-scripts))|(completion-report-v[0-9]+\.(html|json))|\.reservations)$/;
+// The shared code folder holds every piece of work's implementation reports, scripts and completion reports.
+const REPORT_ENTRY = new RegExp(
+  `^((${artifactStemPattern("code-implementation")}(\\.html|\\.json|-scripts))|(${artifactStemPattern("completion-report")}\\.(html|json))|\\.reservations)$`,
+);
 
 function text(html: string): string {
   return load(html).root().text().replace(/\s+/g, " ").trim();
@@ -50,9 +54,9 @@ function validateArtifactPair(value: CodeImplementationPackage, jsonPath: string
   if (resolve(value.artifacts.json) !== jsonPath) {
     throw new Error("Code implementation artifacts.json must identify the JSON file being validated.");
   }
-  const match = basename(jsonPath).match(/^(code-implementation-v[0-9]+)\.json$/);
+  const match = matchArtifactFileName(basename(jsonPath), "code-implementation");
   if (!match) {
-    throw new Error("Code implementation JSON filename must use code-implementation-vNNN.json.");
+    throw new Error("Code implementation JSON filename must use code-implementation[-<work label>]-vNNN.json.");
   }
   const htmlPath = join(dirname(jsonPath), `${match[1]!}.html`);
   if (resolve(value.artifacts.html) !== resolve(htmlPath)) {
