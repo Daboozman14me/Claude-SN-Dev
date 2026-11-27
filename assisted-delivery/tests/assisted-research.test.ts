@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   ASSISTED_CONTRACT_VERSION,
   REQUIRED_RESEARCH_INVENTORY_CATEGORIES,
+  EXTENDED_RESEARCH_INVENTORY_CATEGORIES,
   assistedApplicationResearchPackageSchema,
 } from "../src/assisted-contracts.js";
 import {
@@ -164,8 +165,30 @@ test("validates a comprehensive assisted research handoff", () => {
 test("research plan covers every required inventory category", () => {
   assert.deepEqual(
     ASSISTED_APPLICATION_ARTIFACT_QUERIES.map(({ category }) => category).sort(),
-    [...REQUIRED_RESEARCH_INVENTORY_CATEGORIES].sort(),
+    [...REQUIRED_RESEARCH_INVENTORY_CATEGORIES, ...EXTENDED_RESEARCH_INVENTORY_CATEGORIES].sort(),
   );
+});
+
+test("research done after the plan grew must include the new categories; earlier research stays valid", () => {
+  const earlier = researchPackage() as Record<string, unknown>;
+  assert.doesNotThrow(() => validateAssistedResearchJson(JSON.stringify(earlier)), "a September report without the new categories");
+  const recent = { ...earlier, researchedAt: "2026-12-01T09:00:00.000Z" };
+  assert.throws(() => validateAssistedResearchJson(JSON.stringify(recent)), /must include category 'ui_policy_actions'/);
+  const complete = structuredClone(recent) as unknown as { inventory: Array<Record<string, unknown>>; artifactCounts: Array<Record<string, unknown>> };
+  for (const category of EXTENDED_RESEARCH_INVENTORY_CATEGORIES) {
+    complete.inventory.push({ category, count: 0, records: [] });
+    complete.artifactCounts.push({ category, count: 0 });
+  }
+  assert.doesNotThrow(() => validateAssistedResearchJson(JSON.stringify(complete)), "zero records is fine");
+});
+
+test("business rules are read with what triggers them, not just their script", () => {
+  const rules = ASSISTED_APPLICATION_ARTIFACT_QUERIES.find((query) => query.category === "business_rules")!;
+  for (const field of ["filter_condition", "action_insert", "action_update", "action_delete", "action_query", "abort_action", "condition", "when", "order", "script"]) {
+    assert.ok(rules.fields.includes(field), field);
+  }
+  const notifications = ASSISTED_APPLICATION_ARTIFACT_QUERIES.find((query) => query.category === "email_notifications")!;
+  for (const field of ["condition", "recipient_fields", "recipient_groups", "subject", "message_html"]) assert.ok(notifications.fields.includes(field), field);
 });
 
 test("every research plan query passes the guard hook", () => {

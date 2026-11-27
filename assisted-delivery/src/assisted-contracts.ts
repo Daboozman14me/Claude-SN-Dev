@@ -308,6 +308,21 @@ export const REQUIRED_RESEARCH_INVENTORY_CATEGORIES = [
   "inbound_email_actions",
 ] as const;
 
+// Categories added after the first research reports were written: required only for research done
+// since this date, so earlier reports stay valid.
+export const EXTENDED_RESEARCH_CATEGORIES_SINCE = "2026-11-28T00:00:00Z";
+export const EXTENDED_RESEARCH_INVENTORY_CATEGORIES = [
+  "ui_policy_actions",
+  "flow_triggers",
+  "flow_actions",
+  "flow_logic",
+  "ui_scripts",
+  "ui_pages",
+  "data_policies",
+  "data_policy_rules",
+  "script_actions",
+] as const;
+
 export const assistedApplicationResearchPackageSchema = z
   .object({
     contractVersion: z.literal(ASSISTED_CONTRACT_VERSION),
@@ -506,6 +521,17 @@ export const assistedApplicationResearchPackageSchema = z
           path: ["inventory"],
           message: `Required research inventory category '${category}' is missing.`,
         });
+      }
+    }
+    if (Date.parse(value.researchedAt) >= Date.parse(EXTENDED_RESEARCH_CATEGORIES_SINCE)) {
+      for (const category of EXTENDED_RESEARCH_INVENTORY_CATEGORIES) {
+        if (!inventoryCategories.has(category)) {
+          context.addIssue({
+            code: "custom",
+            path: ["inventory"],
+            message: `Research done since ${EXTENDED_RESEARCH_CATEGORIES_SINCE.slice(0, 10)} must include category '${category}' (zero records is fine).`,
+          });
+        }
       }
     }
     for (const relationship of value.relationships) {

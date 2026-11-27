@@ -28,7 +28,8 @@ to the separate Solution Recommendation report produced by a different agent.
    - `~/.claude/assisted-delivery/src/assisted-contracts.ts`
      — use `assistedApplicationResearchPackageSchema` /
      `AssistedApplicationResearchPackage` as the exact JSON shape, and
-     `REQUIRED_RESEARCH_INVENTORY_CATEGORIES` as the categories that must be
+     `REQUIRED_RESEARCH_INVENTORY_CATEGORIES` plus
+     `EXTENDED_RESEARCH_INVENTORY_CATEGORIES` as the categories that must be
      present even when their count is zero.
    - `~/.claude/assisted-delivery/src/assisted-research-plan.ts`
      — treat `ASSISTED_APPLICATION_ARTIFACT_QUERIES` as the minimum
@@ -126,7 +127,23 @@ decide on full research.
   Actions, ACLs and their roles, roles, flows, workflows, Scripted REST APIs
   and operations, REST Messages, scheduled jobs, properties, Transform Maps
   and field maps, Fix Scripts, notifications, registered events, and inbound
-  email actions. Include each queried category even when its count is zero.
+  email actions — plus UI policy actions, flow triggers, flow actions and
+  flow logic, UI scripts, UI pages, data policies and their rules, and
+  script actions (`EXTENDED_RESEARCH_INVENTORY_CATEGORIES`, required in every
+  new report). Include each queried category even when its count is zero.
+- **Capture what triggers each piece of logic, not just its script.** For
+  business rules record `when`, `order`, the insert/update/delete/query
+  flags, `filter_condition` and `condition`, and `abort_action`; for
+  notifications the event or record trigger, conditions, recipients, and
+  subject; for UI policies their conditions and each policy action. Two
+  rules that run on the same table and moment are an interaction worth a
+  finding.
+- **Flows:** the flow tables give the structure — trigger type, the ordered
+  actions and logic blocks with their comments. Their input values
+  (trigger conditions, field values) are stored in the compressed flow
+  snapshot and come back empty, so record that as a research limitation
+  for each flow; for a Fluent application, the flow's full definition is in
+  the project source, so cite it there.
 - Preserve every returned record individually in `inventory`; never replace
   records with counts, examples, ranges, representative samples, or
   "additional records" placeholders. Each category's `count` must equal

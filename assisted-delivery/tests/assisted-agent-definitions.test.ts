@@ -401,6 +401,9 @@ test("design agents pause with a batched lookup request instead of guessing", ()
     assert.match(agent, /continue where you stopped|continue where you\s+stopped/, name);
   }
   const research = readAgent("assisted-delivery-research");
+  assert.match(research, /EXTENDED_RESEARCH_INVENTORY_CATEGORIES/);
+  assert.match(research, /\*\*Capture what triggers each piece of logic, not just its script\.\*\*/);
+  assert.match(research, /compressed flow\s+snapshot and come back empty/);
   assert.match(research, /## Lookup mode \(a few exact facts for a paused agent\)/);
   assert.match(research, /\*\*Reuse first\.\*\*/);
   assert.match(research, /lookup-freshness\.ts/);
